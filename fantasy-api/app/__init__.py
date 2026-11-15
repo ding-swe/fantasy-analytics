@@ -1,0 +1,1 @@
+"""Fantasy Analytics API package."""

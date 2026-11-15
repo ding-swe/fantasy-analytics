@@ -1,0 +1,26 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(
+    title="Fantasy Analytics API",
+    description="Backend API for NBA fantasy basketball data and analysis.",
+    version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/", tags=["status"])
+def read_root() -> dict[str, str]:
+    return {"name": "Fantasy Analytics API", "docs": "/docs"}
+
+
+@app.get("/health", tags=["status"])
+def read_health() -> dict[str, str]:
+    return {"status": "ok"}
