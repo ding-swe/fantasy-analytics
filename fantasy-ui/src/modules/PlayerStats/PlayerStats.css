@@ -128,7 +128,7 @@
 
 .player-stats-player[open] > .player-stats-player-summary {
   border-bottom: 1px solid #ececf0;
-  background: #f8f8fb;
+  background: #eee8ff;
 }
 
 .player-stats-player-identity {

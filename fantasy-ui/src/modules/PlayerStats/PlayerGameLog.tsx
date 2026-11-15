@@ -127,6 +127,56 @@ function ComparedNumber({
   return <strong className={comparisonClass}>{displayValue}</strong>;
 }
 
+function ComparedPercentage({
+  made,
+  attempted,
+  averageMade,
+  averageAttempted
+}: {
+  made: number | string | null;
+  attempted: number | string | null;
+  averageMade: number | null;
+  averageAttempted: number | null;
+}) {
+  const madeValue = made === null || made === '' ? null : Number(made);
+  const attemptedValue =
+    attempted === null || attempted === '' ? null : Number(attempted);
+  const averagePercentage =
+    averageMade !== null && averageAttempted !== null && averageAttempted > 0
+      ? averageMade / averageAttempted
+      : null;
+  const percentage =
+    madeValue !== null && attemptedValue !== null && attemptedValue > 0
+      ? madeValue / attemptedValue
+      : null;
+
+  let comparisonClass = '';
+  if (
+    percentage !== null &&
+    Number.isFinite(percentage) &&
+    averagePercentage !== null &&
+    averagePercentage > 0
+  ) {
+    if (percentage <= averagePercentage * 0.8) {
+      comparisonClass = 'below-average';
+    } else if (percentage >= averagePercentage * 1.2) {
+      comparisonClass = 'above-average';
+    }
+  }
+
+  return (
+    <strong className={comparisonClass}>
+      {madeValue !== null && Number.isFinite(madeValue)
+        ? String(madeValue)
+        : formatNumber(made)}
+      /
+      {attemptedValue !== null && Number.isFinite(attemptedValue)
+        ? String(attemptedValue)
+        : formatNumber(attempted)}
+    </strong>
+  );
+}
+
 function AverageStat({ label, value }: { label: string; value: string }) {
   return (
     <span className="player-stats-average-stat">
@@ -179,32 +229,22 @@ function PlayerGameRows({
             role="cell"
             aria-label={`Field goals made and attempted: ${game.field_goals_made}/${game.field_goals_attempted}`}
           >
-            <ComparedNumber
-              value={game.field_goals_made}
-              averageValue={averages.fieldGoalsMade}
-              integer
-            />
-            /
-            <ComparedNumber
-              value={game.field_goals_attempted}
-              averageValue={averages.fieldGoalsAttempted}
-              integer
+            <ComparedPercentage
+              made={game.field_goals_made}
+              attempted={game.field_goals_attempted}
+              averageMade={averages.fieldGoalsMade}
+              averageAttempted={averages.fieldGoalsAttempted}
             />
           </span>
           <span
             role="cell"
             aria-label={`Free throws made and attempted: ${game.free_throws_made}/${game.free_throws_attempted}`}
           >
-            <ComparedNumber
-              value={game.free_throws_made}
-              averageValue={averages.freeThrowsMade}
-              integer
-            />
-            /
-            <ComparedNumber
-              value={game.free_throws_attempted}
-              averageValue={averages.freeThrowsAttempted}
-              integer
+            <ComparedPercentage
+              made={game.free_throws_made}
+              attempted={game.free_throws_attempted}
+              averageMade={averages.freeThrowsMade}
+              averageAttempted={averages.freeThrowsAttempted}
             />
           </span>
           <span role="cell" aria-label={`Points: ${formatNumber(game.points)}`}>
