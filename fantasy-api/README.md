@@ -26,7 +26,7 @@ The API is available at <http://127.0.0.1:8000>. Interactive API docs are at <ht
 - `app/api/routes/player_stats.py` exposes the result over HTTP.
 - `app/schemas/player_stats.py` defines the JSON response contract.
 
-The first endpoint is `GET /api/players/{player_id}/games?limit=3`. It defaults to the current NBA season and returns up to three recent regular-season games. For example, `GET /api/players/1628378/games?limit=3` returns a player name, season, and game rows. This is the demo player currently shown by the UI.
+The first endpoint is `GET /api/players/{player_id}/games?limit=7`. It defaults to the current NBA season and returns up to seven recent regular-season games. For example, `GET /api/players/1630581/games?limit=7` returns Josh Giddey's player name, season, and game rows.
 
 ## Run the UI
 

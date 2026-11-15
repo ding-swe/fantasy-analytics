@@ -29,7 +29,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export async function fetchPlayerGames(
   playerId: number,
-  limit = 3
+  limit = 7
 ): Promise<PlayerGameLogResponse> {
   const response = await fetch(
     `${API_BASE_URL}/api/players/${playerId}/games?limit=${limit}`

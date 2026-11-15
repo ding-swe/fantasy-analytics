@@ -18,7 +18,7 @@ def current_nba_season() -> str:
 def read_player_games(
     player_id: int,
     season: str | None = None,
-    limit: int = Query(default=3, ge=1, le=20),
+    limit: int = Query(default=7, ge=1, le=20),
 ) -> PlayerGameLogResponse:
     selected_season = season or current_nba_season()
 

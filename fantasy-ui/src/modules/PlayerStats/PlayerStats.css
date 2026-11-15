@@ -32,44 +32,204 @@
   text-transform: uppercase;
 }
 
-.player-stats-table-wrap {
+.player-stats-section-heading {
+  margin: 32px 0 16px;
+}
+
+.player-stats-section-description {
+  margin-top: -8px;
+  margin-bottom: 20px;
+  color: #686a70;
+}
+
+.player-stats-roster-grid {
+  --roster-columns: minmax(240px, 2.15fr) minmax(68px, 0.7fr)
+    minmax(86px, 0.95fr) minmax(86px, 0.95fr) repeat(8, minmax(65px, 0.8fr));
+
   overflow-x: auto;
   border: 1px solid #e0e1e5;
   border-radius: 10px;
   background: #fff;
-  box-shadow: 0 4px 16px rgb(30 35 50 / 6%);
 }
 
-.player-stats-table {
+.player-stats-column-headings,
+.player-stats-player-summary,
+.player-stats-game-row {
+  box-sizing: border-box;
+  display: grid;
   width: 100%;
-  border-collapse: collapse;
-  white-space: nowrap;
+  grid-template-columns: var(--roster-columns);
+  align-items: center;
+  padding: 12px 14px 12px 32px;
 }
 
-.player-stats-table th,
-.player-stats-table td {
-  padding: 13px 14px;
-  border-bottom: 1px solid #ececf0;
-  text-align: right;
-}
-
-.player-stats-table th {
+.player-stats-column-headings {
   background: #f8f8fb;
   color: #626475;
   font-size: 0.76rem;
+  font-weight: 700;
   letter-spacing: 0.04em;
+  text-align: center;
   text-transform: uppercase;
 }
 
-.player-stats-table th:first-child,
-.player-stats-table td:first-child,
-.player-stats-table th:nth-child(2),
-.player-stats-table td:nth-child(2) {
+.player-stats-column-headings span:first-child {
   text-align: left;
 }
 
-.player-stats-table tbody tr:last-child td {
-  border-bottom: 0;
+.player-stats-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.player-stats-sort-button:hover,
+.player-stats-sort-button:focus-visible {
+  color: var(--text-accent);
+}
+
+.player-stats-sort-button span {
+  font-size: 0.8em;
+}
+
+.player-stats-player {
+  display: block;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid #ececf0;
+  background: #fff;
+}
+
+.player-stats-player-summary {
+  position: relative;
+  cursor: pointer;
+  background: #f8f8fb;
+}
+
+.player-stats-player-summary::before {
+  position: absolute;
+  left: 14px;
+  content: '▸';
+  color: #686a70;
+}
+
+.player-stats-player[open] > .player-stats-player-summary::before {
+  content: '▾';
+}
+
+.player-stats-player[open] > .player-stats-player-summary {
+  border-bottom: 1px solid #ececf0;
+  background: #f8f8fb;
+}
+
+.player-stats-player-identity {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.player-stats-player-name {
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+}
+
+.player-stats-average-grid {
+  display: contents;
+}
+
+.player-stats-average-stat {
+  display: block;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-stats-average-stat > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.player-stats-average-stat strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-stats-player-details {
+  padding: 0;
+}
+
+.player-stats-game-rows {
+  width: 100%;
+}
+
+.player-stats-game-row {
+  min-height: 58px;
+  border-bottom: 1px solid #ececf0;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-stats-game-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-stats-game-row > .player-stats-game-context {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  text-align: left;
+}
+
+.player-stats-game-context > span:first-child {
+  color: #626475;
+  font-size: 0.85rem;
+}
+
+.player-stats-result {
+  color: #686a70;
+  font-size: 0.85em;
+}
+
+.player-stats-game-row > span > strong {
+  font-weight: 400;
+}
+
+.player-stats-game-row strong.below-average {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.player-stats-game-row strong.above-average {
+  color: #18794e;
+  font-weight: 700;
+}
+
+.player-stats-game-row:last-child {
+  border-bottom: 1px solid #ececf0;
 }
 
 .player-stats-message {

@@ -1,127 +1,185 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import PlayerGameLog, { PlayerAverageStats } from './PlayerGameLog';
 import {
-  fetchPlayerGames,
-  PlayerGameLogResponse,
-} from '../../services/playerStatsApi';
+  coreRoster,
+  RosterPlayer,
+  streamSlotCandidates
+} from '../../config/roster';
 import './PlayerStats.css';
 
-const PLAYER_ID = 1628378;
+type SortKey = 'name' | keyof PlayerAverageStats;
 
-function formatNumber(value: number | string | null): string {
-  if (value === null || value === '') return '—';
-
-  const number = Number(value);
-  return Number.isFinite(number) ? number.toFixed(1) : String(value);
+interface AverageColumn {
+  label: string;
+  sortKey: SortKey;
+  sortDescription?: string;
 }
 
-function formatMadeAttempted(
-  made: number | null,
-  attempted: number | null
-): string {
-  if (made === null || attempted === null) return '—';
-  return `${made}/${attempted}`;
+interface SortState {
+  key: SortKey;
+  direction: 'asc' | 'desc';
 }
 
-function formatDate(value: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (!match) return value;
+const averageColumns: AverageColumn[] = [
+  { label: 'Player', sortKey: 'name' },
+  { label: 'MIN', sortKey: 'minutes' },
+  {
+    label: 'FGM / FGA',
+    sortKey: 'fieldGoalsMade',
+    sortDescription: 'Sort by average field goals made'
+  },
+  {
+    label: 'FTM / FTA',
+    sortKey: 'freeThrowsMade',
+    sortDescription: 'Sort by average free throws made'
+  },
+  { label: 'PTS', sortKey: 'points' },
+  { label: 'REB', sortKey: 'rebounds' },
+  { label: 'AST', sortKey: 'assists' },
+  { label: 'STL', sortKey: 'steals' },
+  { label: 'BLK', sortKey: 'blocks' },
+  { label: 'TO', sortKey: 'turnovers' },
+  { label: '3PM', sortKey: 'threePointersMade' },
+  { label: 'Fantasy', sortKey: 'fantasyPoints' }
+];
 
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  let suffix = 'th';
-  if (day % 100 < 11 || day % 100 > 13) {
-    if (day % 10 === 1) suffix = 'st';
-    else if (day % 10 === 2) suffix = 'nd';
-    else if (day % 10 === 3) suffix = 'rd';
-  }
-  const monthName = new Date(year, month - 1, day).toLocaleString('en-US', {
-    month: 'long',
+function PlayerRows({
+  players,
+  averagesByPlayer,
+  onAveragesChange
+}: {
+  players: RosterPlayer[];
+  averagesByPlayer: Record<number, PlayerAverageStats>;
+  onAveragesChange: (playerId: number, averages: PlayerAverageStats) => void;
+}) {
+  const [sort, setSort] = useState<SortState>({
+    key: 'fantasyPoints',
+    direction: 'desc'
   });
 
-  return `${monthName} ${day}${suffix}, ${year}`;
+  const handleSort = (key: SortKey) => {
+    setSort((previous) => ({
+      key,
+      direction:
+        previous.key === key
+          ? previous.direction === 'asc'
+            ? 'desc'
+            : 'asc'
+          : key === 'name'
+          ? 'asc'
+          : 'desc'
+    }));
+  };
+
+  const sortedPlayers = players
+    .map((player, originalIndex) => ({ player, originalIndex }))
+    .sort((left, right) => {
+      const leftValue =
+        sort.key === 'name'
+          ? left.player.name.toLocaleLowerCase()
+          : averagesByPlayer[left.player.playerId]?.[sort.key] ?? null;
+      const rightValue =
+        sort.key === 'name'
+          ? right.player.name.toLocaleLowerCase()
+          : averagesByPlayer[right.player.playerId]?.[sort.key] ?? null;
+
+      if (leftValue === null && rightValue === null) {
+        return left.originalIndex - right.originalIndex;
+      }
+      if (leftValue === null) return 1;
+      if (rightValue === null) return -1;
+
+      const comparison =
+        typeof leftValue === 'string' && typeof rightValue === 'string'
+          ? leftValue.localeCompare(rightValue)
+          : Number(leftValue) - Number(rightValue);
+
+      if (comparison === 0) return left.originalIndex - right.originalIndex;
+      return sort.direction === 'asc' ? comparison : -comparison;
+    });
+
+  return (
+    <div className="player-stats-roster-grid">
+      <div className="player-stats-column-headings">
+        {averageColumns.map(({ label, sortKey, sortDescription }) => {
+          const isActive = sort.key === sortKey;
+          const direction = sort.direction === 'asc' ? '▲' : '▼';
+
+          return (
+            <span key={sortKey}>
+              <button
+                type="button"
+                className="player-stats-sort-button"
+                aria-pressed={isActive}
+                title={sortDescription || `Sort by ${label}`}
+                onClick={() => handleSort(sortKey)}
+              >
+                {label}
+                <span aria-hidden="true">{isActive ? direction : '↕'}</span>
+              </button>
+            </span>
+          );
+        })}
+      </div>
+      {sortedPlayers.map(({ player }) => (
+        <PlayerGameLog
+          key={player.playerId}
+          playerId={player.playerId}
+          name={player.name}
+          onAveragesChange={onAveragesChange}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function PlayerStats() {
-  const [data, setData] = useState<PlayerGameLogResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [averagesByPlayer, setAveragesByPlayer] = useState<
+    Record<number, PlayerAverageStats>
+  >({});
 
-  useEffect(() => {
-    fetchPlayerGames(PLAYER_ID)
-      .then(setData)
-      .catch((requestError: Error) => setError(requestError.message))
-      .finally(() => setLoading(false));
-  }, []);
+  const handleAveragesChange = useCallback(
+    (playerId: number, averages: PlayerAverageStats) => {
+      setAveragesByPlayer((previous) => ({
+        ...previous,
+        [playerId]: averages
+      }));
+    },
+    []
+  );
 
   return (
     <main className="player-stats-page">
       <header className="player-stats-heading">
         <p className="player-stats-eyebrow">NBA player data</p>
-        <h1>{data?.player_name || 'Player game log'}</h1>
-        <p>Most recent games · {data?.season || 'current season'}</p>
+        <h1>Player game logs</h1>
+        <p>Most recent games · current season</p>
       </header>
 
-      {loading && <p role="status">Loading player stats…</p>}
-      {error && <p className="player-stats-message error" role="alert">{error}</p>}
-      {!loading && !error && data?.games.length === 0 && (
-        <p className="player-stats-message">No games were returned for this player yet.</p>
-      )}
+      <section aria-labelledby="core-roster-heading">
+        <h2 className="player-stats-section-heading" id="core-roster-heading">
+          Roster
+        </h2>
+        <PlayerRows
+          players={coreRoster}
+          averagesByPlayer={averagesByPlayer}
+          onAveragesChange={handleAveragesChange}
+        />
+      </section>
 
-      {!loading && !error && data && data.games.length > 0 && (
-        <div className="player-stats-table-wrap">
-          <table className="player-stats-table">
-            <thead>
-              <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Matchup</th>
-                <th scope="col">Result</th>
-                <th scope="col">MIN</th>
-                <th scope="col">FGM / FGA</th>
-                <th scope="col">FTM / FTA</th>
-                <th scope="col">PTS</th>
-                <th scope="col">REB</th>
-                <th scope="col">AST</th>
-                <th scope="col">STL</th>
-                <th scope="col">BLK</th>
-                <th scope="col">TO</th>
-                <th scope="col">3PM</th>
-                <th scope="col">Fantasy</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.games.map((game) => (
-                <tr key={game.game_id}>
-                  <td>{formatDate(game.game_date)}</td>
-                  <td>{game.matchup}</td>
-                  <td>{game.result || '—'}</td>
-                  <td>{formatNumber(game.minutes)}</td>
-                  <td>
-                    {formatMadeAttempted(
-                      game.field_goals_made,
-                      game.field_goals_attempted
-                    )}
-                  </td>
-                  <td>
-                    {formatMadeAttempted(
-                      game.free_throws_made,
-                      game.free_throws_attempted
-                    )}
-                  </td>
-                  <td>{formatNumber(game.points)}</td>
-                  <td>{formatNumber(game.rebounds)}</td>
-                  <td>{formatNumber(game.assists)}</td>
-                  <td>{formatNumber(game.steals)}</td>
-                  <td>{formatNumber(game.blocks)}</td>
-                  <td>{formatNumber(game.turnovers)}</td>
-                  <td>{formatNumber(game.three_pointers_made)}</td>
-                  <td>{formatNumber(game.fantasy_points)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <section aria-labelledby="stream-slot-heading">
+        <h2 className="player-stats-section-heading" id="stream-slot-heading">
+          Stream slot candidates
+        </h2>
+        <p className="player-stats-section-description">
+          Swap these players in and out as the stream spot changes.
+        </p>
+        <PlayerRows
+          players={streamSlotCandidates}
+          averagesByPlayer={averagesByPlayer}
+          onAveragesChange={handleAveragesChange}
+        />
+      </section>
     </main>
   );
 }
