@@ -1,49 +1,57 @@
-import math
-from typing import Any
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from app.data.nba_stats_client import fetch_player_game_logs
+from app.db.models import Game, Player, PlayerGameStats
 from app.schemas.player_stats import PlayerGameLog, PlayerGameLogResponse
-
-
-def _json_value(value: Any) -> Any:
-    if value is None:
-        return None
-    if hasattr(value, "item"):
-        value = value.item()
-    if isinstance(value, float) and math.isnan(value):
-        return None
-    return value
 
 
 def get_player_game_log(
     player_id: int,
     season: str,
     limit: int,
+    db: Session,
 ) -> PlayerGameLogResponse:
-    rows = fetch_player_game_logs(player_id, season, limit)
+    rows = db.execute(
+        select(PlayerGameStats, Game, Player)
+        .join(Game, Game.id == PlayerGameStats.game_id)
+        .join(Player, Player.id == PlayerGameStats.player_id)
+        .where(PlayerGameStats.player_id == player_id, Game.season == season)
+        .order_by(Game.game_date.desc(), Game.id.desc())
+        .limit(limit)
+    ).all()
+
+    player_name = (
+        rows[0][2].full_name
+        if rows
+        else db.scalar(select(Player.full_name).where(Player.id == player_id))
+    )
     games = [
         PlayerGameLog(
-            game_id=str(row.get("GAME_ID", "")),
-            game_date=str(row.get("GAME_DATE", "")),
-            matchup=str(row.get("MATCHUP", "")),
-            result=_json_value(row.get("WL")),
-            minutes=_json_value(row.get("MIN")),
-            field_goals_made=_json_value(row.get("FGM")),
-            field_goals_attempted=_json_value(row.get("FGA")),
-            free_throws_made=_json_value(row.get("FTM")),
-            free_throws_attempted=_json_value(row.get("FTA")),
-            points=_json_value(row.get("PTS")),
-            rebounds=_json_value(row.get("REB")),
-            assists=_json_value(row.get("AST")),
-            steals=_json_value(row.get("STL")),
-            blocks=_json_value(row.get("BLK")),
-            turnovers=_json_value(row.get("TOV")),
-            three_pointers_made=_json_value(row.get("FG3M")),
-            fantasy_points=_json_value(row.get("NBA_FANTASY_PTS")),
+            game_id=game.id,
+            game_date=game.game_date.isoformat(),
+            matchup=stats.matchup or "",
+            opponent_team_abbreviation=stats.opponent_team_abbreviation,
+            result=stats.result,
+            minutes=float(stats.minutes) if stats.minutes is not None else None,
+            field_goals_made=stats.field_goals_made,
+            field_goals_attempted=stats.field_goals_attempted,
+            free_throws_made=stats.free_throws_made,
+            free_throws_attempted=stats.free_throws_attempted,
+            points=stats.points,
+            rebounds=stats.rebounds,
+            assists=stats.assists,
+            steals=stats.steals,
+            blocks=stats.blocks,
+            turnovers=stats.turnovers,
+            three_pointers_made=stats.three_pointers_made,
+            fantasy_points=(
+                float(stats.nba_fantasy_points)
+                if stats.nba_fantasy_points is not None
+                else None
+            ),
         )
-        for row in rows
+        for stats, game, _player in rows
     ]
-    player_name = str(rows[0].get("PLAYER_NAME", "")) if rows else None
 
     return PlayerGameLogResponse(
         player_id=player_id,

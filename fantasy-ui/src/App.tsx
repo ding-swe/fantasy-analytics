@@ -8,24 +8,36 @@ import Navbar, {
   NavIcon
 } from './modules/Navbar/Navbar';
 
+function FreeAgents() {
+  return (
+    <main className="player-stats-page">
+      <header className="player-stats-heading">
+        <h1>Free agents</h1>
+        <p>Free-agent performance over the past seven days will appear here.</p>
+      </header>
+    </main>
+  );
+}
+
 function App() {
   return (
-    <div style={{ height: '100vh' }}>
-      <Navbar>
-        <NavItem icon="about"></NavItem>
-        <NavItem icon="careers"></NavItem>
-        <NavItem icon="info"></NavItem>
-        <NavIcon>
-          <DropdownMenu></DropdownMenu>
-        </NavIcon>
-      </Navbar>
-      <Router>
+    <Router>
+      <div style={{ height: '100vh' }}>
+        <Navbar>
+          <NavItem icon="about"></NavItem>
+          <NavItem icon="careers"></NavItem>
+          <NavItem icon="info"></NavItem>
+          <NavIcon>
+            <DropdownMenu></DropdownMenu>
+          </NavIcon>
+        </Navbar>
         <Switch>
           <Route path="/" component={PlayerStats} exact />
+          <Route path="/free-agents" component={FreeAgents} exact />
           <Route path="/about" component={About} exact />
         </Switch>
-      </Router>
-    </div>
+      </div>
+    </Router>
   );
 }
 

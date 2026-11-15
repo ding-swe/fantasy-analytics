@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.player_stats import router as player_stats_router
+from app.api.routes.roster import router as roster_router
 
 app = FastAPI(
     title="Fantasy Analytics API",
@@ -18,6 +19,7 @@ app.add_middleware(
 )
 
 app.include_router(player_stats_router)
+app.include_router(roster_router)
 
 
 @app.get("/", tags=["status"])

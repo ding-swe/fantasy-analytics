@@ -2,6 +2,7 @@ export interface PlayerGame {
   game_id: string;
   game_date: string;
   matchup: string;
+  opponent_team_abbreviation: string | null;
   result: string | null;
   minutes: string | number | null;
   field_goals_made: number | null;

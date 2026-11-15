@@ -17,6 +17,7 @@
 .player-stats-heading h1 {
   margin: 4px 0;
   font-size: clamp(1.8rem, 4vw, 2.6rem);
+  color: var(--bg-header);
 }
 
 .player-stats-heading p {
@@ -30,6 +31,59 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.player-stats-manager-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.player-stats-manager-selector label {
+  color: #626475;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.player-stats-manager-select-wrap {
+  position: relative;
+}
+
+.player-stats-manager-select-wrap::after {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  color: var(--bg-header);
+  content: '⌄';
+  font-size: 1rem;
+  pointer-events: none;
+  transform: translateY(-60%);
+}
+
+.player-stats-manager-select-wrap select {
+  min-width: 190px;
+  padding: 11px 42px 11px 14px;
+  border: 1px solid #ded8f4;
+  border-radius: 10px;
+  appearance: none;
+  background: #fff;
+  color: var(--text-dark);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.player-stats-manager-select-wrap select:hover,
+.player-stats-manager-select-wrap select:focus-visible {
+  border-color: var(--bg-header);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(109, 43, 249, 0.14);
+}
+
+.player-stats-manager-select-wrap select:disabled {
+  color: #777;
+  cursor: wait;
 }
 
 .player-stats-section-heading {
@@ -240,4 +294,13 @@
 
 .player-stats-message.error {
   color: #a12424;
+}
+
+.player-stats-open-stream-slot {
+  padding: 16px;
+  border: 1px dashed #cfc6e8;
+  border-radius: 10px;
+  background: #faf9ff;
+  color: #626475;
+  font-size: 0.9rem;
 }

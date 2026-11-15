@@ -74,6 +74,15 @@ function formatDate(value: string): string {
   return `${monthName} ${day}${suffix}`;
 }
 
+function opponentAbbreviation(game: PlayerGame): string | null {
+  if (game.opponent_team_abbreviation) return game.opponent_team_abbreviation;
+
+  const match = /^([A-Z]{2,3})\s+(?:@|vs\.)\s+([A-Z]{2,3})$/.exec(
+    game.matchup.trim()
+  );
+  return match?.[2] || null;
+}
+
 function calculateAverages(games: PlayerGame[]): PlayerAverageStats {
   return {
     minutes: average(games, (game) => game.minutes),
@@ -201,120 +210,134 @@ function PlayerGameRows({
       role="table"
       aria-label={`${playerName} recent games`}
     >
-      {games.map((game) => (
-        <div className="player-stats-game-row" role="row" key={game.game_id}>
-          <span
-            className="player-stats-game-context"
-            role="cell"
-            aria-label={`${formatDate(game.game_date)}, ${game.matchup}, ${
-              game.result || 'no result'
-            }`}
-          >
-            <span>{formatDate(game.game_date)}</span>
-            <span>
-              {game.matchup}{' '}
-              <span className="player-stats-result">{game.result}</span>
+      {games.map((game) => {
+        const opponent = opponentAbbreviation(game);
+        return (
+          <div className="player-stats-game-row" role="row" key={game.game_id}>
+            <span
+              className="player-stats-game-context"
+              role="cell"
+              aria-label={`${formatDate(game.game_date)}, vs ${
+                opponent || 'unknown opponent'
+              }, ${game.result || 'no result'}`}
+            >
+              <span>{formatDate(game.game_date)}</span>
+              <span>
+                vs {opponent || '—'}{' '}
+                <span className="player-stats-result">{game.result}</span>
+              </span>
             </span>
-          </span>
-          <span
-            role="cell"
-            aria-label={`Minutes: ${formatNumber(game.minutes)}`}
-          >
-            <ComparedNumber
-              value={game.minutes}
-              averageValue={averages.minutes}
-            />
-          </span>
-          <span
-            role="cell"
-            aria-label={`Field goals made and attempted: ${game.field_goals_made}/${game.field_goals_attempted}`}
-          >
-            <ComparedPercentage
-              made={game.field_goals_made}
-              attempted={game.field_goals_attempted}
-              averageMade={averages.fieldGoalsMade}
-              averageAttempted={averages.fieldGoalsAttempted}
-            />
-          </span>
-          <span
-            role="cell"
-            aria-label={`Free throws made and attempted: ${game.free_throws_made}/${game.free_throws_attempted}`}
-          >
-            <ComparedPercentage
-              made={game.free_throws_made}
-              attempted={game.free_throws_attempted}
-              averageMade={averages.freeThrowsMade}
-              averageAttempted={averages.freeThrowsAttempted}
-            />
-          </span>
-          <span role="cell" aria-label={`Points: ${formatNumber(game.points)}`}>
-            <ComparedNumber
-              value={game.points}
-              averageValue={averages.points}
-            />
-          </span>
-          <span
-            role="cell"
-            aria-label={`Rebounds: ${formatNumber(game.rebounds)}`}
-          >
-            <ComparedNumber
-              value={game.rebounds}
-              averageValue={averages.rebounds}
-            />
-          </span>
-          <span
-            role="cell"
-            aria-label={`Assists: ${formatNumber(game.assists)}`}
-          >
-            <ComparedNumber
-              value={game.assists}
-              averageValue={averages.assists}
-            />
-          </span>
-          <span role="cell" aria-label={`Steals: ${formatNumber(game.steals)}`}>
-            <ComparedNumber
-              value={game.steals}
-              averageValue={averages.steals}
-            />
-          </span>
-          <span role="cell" aria-label={`Blocks: ${formatNumber(game.blocks)}`}>
-            <ComparedNumber
-              value={game.blocks}
-              averageValue={averages.blocks}
-            />
-          </span>
-          <span
-            role="cell"
-            aria-label={`Turnovers: ${formatNumber(game.turnovers)}`}
-          >
-            <ComparedNumber
-              value={game.turnovers}
-              averageValue={averages.turnovers}
-              inverse
-            />
-          </span>
-          <span
-            role="cell"
-            aria-label={`Three pointers made: ${formatNumber(
-              game.three_pointers_made
-            )}`}
-          >
-            <ComparedNumber
-              value={game.three_pointers_made}
-              averageValue={averages.threePointersMade}
-            />
-          </span>
-          <span
-            role="cell"
-            aria-label={`Fantasy points: ${formatNumber(game.fantasy_points)}`}
-          >
-            <ComparedNumber
-              value={game.fantasy_points}
-              averageValue={averages.fantasyPoints}
-            />
-          </span>
-        </div>
-      ))}
+            <span
+              role="cell"
+              aria-label={`Minutes: ${formatNumber(game.minutes)}`}
+            >
+              <ComparedNumber
+                value={game.minutes}
+                averageValue={averages.minutes}
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Field goals made and attempted: ${game.field_goals_made}/${game.field_goals_attempted}`}
+            >
+              <ComparedPercentage
+                made={game.field_goals_made}
+                attempted={game.field_goals_attempted}
+                averageMade={averages.fieldGoalsMade}
+                averageAttempted={averages.fieldGoalsAttempted}
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Free throws made and attempted: ${game.free_throws_made}/${game.free_throws_attempted}`}
+            >
+              <ComparedPercentage
+                made={game.free_throws_made}
+                attempted={game.free_throws_attempted}
+                averageMade={averages.freeThrowsMade}
+                averageAttempted={averages.freeThrowsAttempted}
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Points: ${formatNumber(game.points)}`}
+            >
+              <ComparedNumber
+                value={game.points}
+                averageValue={averages.points}
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Rebounds: ${formatNumber(game.rebounds)}`}
+            >
+              <ComparedNumber
+                value={game.rebounds}
+                averageValue={averages.rebounds}
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Assists: ${formatNumber(game.assists)}`}
+            >
+              <ComparedNumber
+                value={game.assists}
+                averageValue={averages.assists}
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Steals: ${formatNumber(game.steals)}`}
+            >
+              <ComparedNumber
+                value={game.steals}
+                averageValue={averages.steals}
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Blocks: ${formatNumber(game.blocks)}`}
+            >
+              <ComparedNumber
+                value={game.blocks}
+                averageValue={averages.blocks}
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Turnovers: ${formatNumber(game.turnovers)}`}
+            >
+              <ComparedNumber
+                value={game.turnovers}
+                averageValue={averages.turnovers}
+                inverse
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Three pointers made: ${formatNumber(
+                game.three_pointers_made
+              )}`}
+            >
+              <ComparedNumber
+                value={game.three_pointers_made}
+                averageValue={averages.threePointersMade}
+              />
+            </span>
+            <span
+              role="cell"
+              aria-label={`Fantasy points: ${formatNumber(
+                game.fantasy_points
+              )}`}
+            >
+              <ComparedNumber
+                value={game.fantasy_points}
+                averageValue={averages.fantasyPoints}
+              />
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

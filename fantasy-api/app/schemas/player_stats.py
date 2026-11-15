@@ -5,6 +5,7 @@ class PlayerGameLog(BaseModel):
     game_id: str
     game_date: str
     matchup: str
+    opponent_team_abbreviation: str | None
     result: str | None
     minutes: str | int | float | None
     field_goals_made: int | float | None

@@ -1,7 +1,10 @@
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
+from app.db.database import get_db
 from app.schemas.player_stats import PlayerGameLogResponse
 from app.services.player_stats import get_player_game_log
 
@@ -19,13 +22,14 @@ def read_player_games(
     player_id: int,
     season: str | None = None,
     limit: int = Query(default=7, ge=1, le=20),
+    db: Session = Depends(get_db),
 ) -> PlayerGameLogResponse:
     selected_season = season or current_nba_season()
 
     try:
-        return get_player_game_log(player_id, selected_season, limit)
-    except Exception as error:
+        return get_player_game_log(player_id, selected_season, limit, db)
+    except SQLAlchemyError as error:
         raise HTTPException(
-            status_code=502,
-            detail="The NBA stats source could not be reached. Please try again.",
+            status_code=503,
+            detail="The local stats database is unavailable. Please try again.",
         ) from error

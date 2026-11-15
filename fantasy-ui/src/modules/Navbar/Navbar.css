@@ -4,25 +4,25 @@
     background-color: var(--bg-white);
     padding: 0 1rem;
     border-bottom: 1.5px solid var(--shadow);
-    display: flex; 
+    display: flex;
     flex-direction: row;
     justify-content: space-between;
 }
-  
+
 .navbar-nav {
     max-width: 100%;
-    height: 100%; 
+    height: 100%;
     display: flex;
 }
 
 .logo-a {
     font-size: 34px;
-    color: var(--text-accent-secondary);    
+    color: var(--text-accent-secondary);
 }
 
 .logo-b {
     font-size: 34px;
-    color: var(--text-accent);    
+    color: var(--text-accent);
 }
 
 
@@ -41,7 +41,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 300ms; 
+    transition: background-color 300ms;
     border-radius: var(--border-radius);
 }
 
@@ -61,19 +61,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: filter 300ms; 
+    transition: filter 300ms;
 }
 
 .dropdown {
     position: absolute;
     top: 58px;
-    width:300px; 
+    width:300px;
     transform:  translateX(-45%);
     background-color: var(--bg-light-grey);
     border: var(--border);
     border-radius: var(--border-radius);
     padding: 1rem;
-    overflow: hidden; 
+    overflow: hidden;
     z-index: 10;
 }
 
@@ -84,7 +84,7 @@
     align-items: center;
     border-radius: var(--border-radius);
     transition: background var(--speed);
-    padding: 0.5rem; 
+    padding: 0.5rem;
     margin: 2px;
 }
 
@@ -99,11 +99,37 @@
 }
 
 
-.blackbar {
-    height: 29px;
-    background-color: var(--bg-dark);
-    border-bottom: 1px solid var(--shadow);
-    display: flex; 
-    flex-direction: row;
-    justify-content: space-between;
+.workspace-tabs {
+    box-sizing: border-box;
+    min-height: 52px;
+    display: flex;
+    align-items: stretch;
+    gap: 24px;
+    padding: 0 clamp(20px, 5vw, 72px);
+    border-bottom: 1px solid #e1e1e6;
+    background: var(--bg);
+}
+
+.workspace-tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 4px 0;
+    border-bottom: 3px solid transparent;
+    color: #666874;
+    font-size: 0.96rem;
+    font-weight: 600;
+    transition: color 180ms ease, border-color 180ms ease;
+}
+
+.workspace-tab:first-child {
+    padding-left: 0;
+}
+
+.workspace-tab:hover {
+    color: var(--bg-header);
+}
+
+.workspace-tab.active {
+    border-bottom-color: var(--bg-header);
+    color: var(--bg-header);
 }

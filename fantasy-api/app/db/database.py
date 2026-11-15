@@ -1,11 +1,12 @@
 import os
+from collections.abc import Generator
 from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 
 @lru_cache(maxsize=1)
@@ -22,3 +23,8 @@ def get_engine() -> Engine:
 
 def get_session_factory() -> sessionmaker:
     return sessionmaker(bind=get_engine(), autoflush=False, expire_on_commit=False)
+
+
+def get_db() -> Generator[Session, None, None]:
+    with get_session_factory()() as session:
+        yield session

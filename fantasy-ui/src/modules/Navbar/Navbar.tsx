@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import './Navbar.css';
 
 interface Props {
@@ -78,7 +79,23 @@ export default function Navbar(props: Props) {
         <NavLogo />
         <ul className="navbar-nav"> {props.children} </ul>
       </nav>
-      <nav className="blackbar"></nav>
+      <nav className="workspace-tabs" aria-label="Analytics pages">
+        <NavLink
+          exact
+          to="/"
+          className="workspace-tab"
+          activeClassName="active"
+        >
+          Player game logs
+        </NavLink>
+        <NavLink
+          to="/free-agents"
+          className="workspace-tab"
+          activeClassName="active"
+        >
+          Free agents
+        </NavLink>
+      </nav>
     </div>
   );
 }

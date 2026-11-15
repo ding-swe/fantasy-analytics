@@ -1,7 +1,18 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -34,6 +45,9 @@ class PlayerGameStats(Base):
     team_id: Mapped[int | None] = mapped_column(Integer)
     team_abbreviation: Mapped[str | None] = mapped_column(String(5))
     matchup: Mapped[str | None] = mapped_column(String(20))
+    opponent_team_abbreviation: Mapped[str | None] = mapped_column(
+        String(5), index=True
+    )
     result: Mapped[str | None] = mapped_column(String(1))
     minutes: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
     field_goals_made: Mapped[int | None] = mapped_column(Integer)
@@ -62,3 +76,47 @@ class SyncRun(Base):
     completed_through_date: Mapped[date | None] = mapped_column(Date)
     records_processed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_message: Mapped[str | None] = mapped_column(String(2000))
+
+
+class FantasyLeague(Base):
+    __tablename__ = "fantasy_leagues"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    slug: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+
+
+class FantasyManager(Base):
+    """A manager's team in one fantasy league (not an app login account)."""
+
+    __tablename__ = "fantasy_managers"
+    __table_args__ = (
+        UniqueConstraint("league_id", "team_name", name="uq_fantasy_manager_league_team"),
+        Index(
+            "uq_fantasy_managers_primary",
+            "is_primary",
+            unique=True,
+            postgresql_where=text("is_primary IS TRUE"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    league_id: Mapped[int] = mapped_column(
+        ForeignKey("fantasy_leagues.id"), nullable=False, index=True
+    )
+    manager_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    team_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    streaming_slots: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+
+class FantasyRosterEntry(Base):
+    __tablename__ = "fantasy_roster_entries"
+    __table_args__ = (Index("ix_fantasy_roster_entries_manager_order", "manager_id", "sort_order"),)
+
+    manager_id: Mapped[int] = mapped_column(
+        ForeignKey("fantasy_managers.id"), primary_key=True
+    )
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), primary_key=True)
+    roster_group: Mapped[str] = mapped_column(String(30), nullable=False, default="core")
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

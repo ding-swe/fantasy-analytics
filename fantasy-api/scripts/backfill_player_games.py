@@ -9,6 +9,7 @@ import argparse
 from datetime import date, datetime, timezone
 from decimal import Decimal
 import math
+import re
 from typing import Any
 
 from nba_api.stats.endpoints import PlayerGameLogs
@@ -19,6 +20,27 @@ from app.db.models import Game, Player, PlayerGameStats, SyncRun
 
 
 BATCH_SIZE = 500
+MATCHUP_PATTERN = re.compile(r"^([A-Z]{2,3})\s+(?:@|vs\.)\s+([A-Z]{2,3})$")
+
+
+def opponent_abbreviation(matchup: Any, team_abbreviation: Any) -> str | None:
+    matchup = clean_value(matchup)
+    team_abbreviation = clean_value(team_abbreviation)
+    if not matchup or not team_abbreviation:
+        return None
+
+    match = MATCHUP_PATTERN.fullmatch(str(matchup).strip())
+    if match is None:
+        return None
+
+    first_team, second_team = match.groups()
+    team_abbreviation = str(team_abbreviation).strip().upper()
+    if team_abbreviation == first_team:
+        return second_team
+    if team_abbreviation == second_team:
+        return first_team
+    return None
+
 
 def current_nba_season(today: date | None = None) -> str:
     today = today or date.today()
@@ -124,12 +146,17 @@ def map_rows(
             "game_date": game_date,
         }
 
+        team_abbreviation = clean_value(row.get("TEAM_ABBREVIATION"))
+        matchup = clean_value(row.get("MATCHUP"))
         stat_row = {
             "player_id": player_id,
             "game_id": game_id,
             "team_id": integer_value(row.get("TEAM_ID")),
-            "team_abbreviation": clean_value(row.get("TEAM_ABBREVIATION")),
-            "matchup": clean_value(row.get("MATCHUP")),
+            "team_abbreviation": team_abbreviation,
+            "matchup": matchup,
+            "opponent_team_abbreviation": opponent_abbreviation(
+                matchup, team_abbreviation
+            ),
             "result": clean_value(row.get("WL")),
             "minutes": decimal_value(row.get("MIN")),
             "field_goals_made": integer_value(row.get("FGM")),
