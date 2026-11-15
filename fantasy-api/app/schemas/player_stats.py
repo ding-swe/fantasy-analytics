@@ -7,6 +7,10 @@ class PlayerGameLog(BaseModel):
     matchup: str
     result: str | None
     minutes: str | int | float | None
+    field_goals_made: int | float | None
+    field_goals_attempted: int | float | None
+    free_throws_made: int | float | None
+    free_throws_attempted: int | float | None
     points: int | float | None
     rebounds: int | float | None
     assists: int | float | None

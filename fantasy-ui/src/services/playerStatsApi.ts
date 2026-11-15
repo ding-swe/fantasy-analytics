@@ -4,6 +4,10 @@ export interface PlayerGame {
   matchup: string;
   result: string | null;
   minutes: string | number | null;
+  field_goals_made: number | null;
+  field_goals_attempted: number | null;
+  free_throws_made: number | null;
+  free_throws_attempted: number | null;
   points: number | null;
   rebounds: number | null;
   assists: number | null;

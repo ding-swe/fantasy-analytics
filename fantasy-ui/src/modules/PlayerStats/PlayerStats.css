@@ -5,6 +5,11 @@
   color: var(--text-dark);
 }
 
+.player-stats-page,
+.player-stats-page * {
+  user-select: text;
+}
+
 .player-stats-heading {
   margin-bottom: 24px;
 }
