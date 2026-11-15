@@ -2,7 +2,7 @@
 
 ## Project
 
-This repository is an early NBA fantasy basketball analytics prototype. The current UI lives in `fantasy-ui/`; `fantasy-api/` contains an Express starter server.
+This repository is an early NBA fantasy basketball analytics prototype. The current UI lives in `fantasy-ui/`; `fantasy-api/` contains a FastAPI server.
 
 ## Working in this repository
 
