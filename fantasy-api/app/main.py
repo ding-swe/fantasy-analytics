@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.player_stats import router as player_stats_router
+
 app = FastAPI(
     title="Fantasy Analytics API",
     description="Backend API for NBA fantasy basketball data and analysis.",
@@ -14,6 +16,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(player_stats_router)
 
 
 @app.get("/", tags=["status"])

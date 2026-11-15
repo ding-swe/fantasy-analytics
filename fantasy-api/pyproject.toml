@@ -8,7 +8,10 @@ version = "0.1.0"
 description = "API for NBA fantasy basketball analytics"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["fastapi[standard]>=0.115,<1.0"]
+dependencies = [
+    "fastapi[standard]>=0.115,<1.0",
+    "nba_api>=1.12,<2.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
