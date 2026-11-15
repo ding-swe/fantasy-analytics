@@ -41,6 +41,8 @@ The PostgreSQL service stores its data on disk in the data directory selected du
 
 `GET /api/players/{player_id}/games?limit=7` reads up to seven recent games from PostgreSQL for the current season. `GET /api/rosters/current` returns the primary fantasy manager's core roster and stream-slot candidates. NBA stats are imported separately with `scripts/backfill_player_games.py`; the API does not call NBA stats directly.
 
+`GET /api/free-agents?limit=20` returns the top unrostered players in the primary manager's fantasy league, ranked by average fantasy points over their last seven games in the current NBA season. Roster membership is derived from fantasy roster entries rather than duplicated on the player record.
+
 ## Run the UI
 
 In a second terminal, run the React app:

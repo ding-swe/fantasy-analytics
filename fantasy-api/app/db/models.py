@@ -112,7 +112,10 @@ class FantasyManager(Base):
 
 class FantasyRosterEntry(Base):
     __tablename__ = "fantasy_roster_entries"
-    __table_args__ = (Index("ix_fantasy_roster_entries_manager_order", "manager_id", "sort_order"),)
+    __table_args__ = (
+        Index("ix_fantasy_roster_entries_manager_order", "manager_id", "sort_order"),
+        Index("ix_fantasy_roster_entries_player_id", "player_id"),
+    )
 
     manager_id: Mapped[int] = mapped_column(
         ForeignKey("fantasy_managers.id"), primary_key=True

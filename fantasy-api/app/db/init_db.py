@@ -23,6 +23,12 @@ def main() -> None:
         )
         connection.execute(
             text(
+                "CREATE INDEX IF NOT EXISTS ix_fantasy_roster_entries_player_id "
+                "ON fantasy_roster_entries (player_id)"
+            )
+        )
+        connection.execute(
+            text(
                 "CREATE INDEX IF NOT EXISTS "
                 "ix_player_game_stats_opponent_team_abbreviation "
                 "ON player_game_stats (opponent_team_abbreviation)"
