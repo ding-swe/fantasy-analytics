@@ -95,6 +95,13 @@ export default function Navbar(props: Props) {
         >
           Free agents
         </NavLink>
+        <NavLink
+          to="/team-comparisons"
+          className="workspace-tab"
+          activeClassName="active"
+        >
+          Team Comparisons
+        </NavLink>
       </nav>
     </div>
   );

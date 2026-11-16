@@ -273,12 +273,24 @@
 }
 
 .player-stats-game-row strong.below-average {
-  color: #b42318;
+  box-sizing: border-box;
+  display: inline-block;
+  min-width: 52px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: #f8e1e1;
+  color: var(--text-dark);
   font-weight: 700;
 }
 
 .player-stats-game-row strong.above-average {
-  color: #18794e;
+  box-sizing: border-box;
+  display: inline-block;
+  min-width: 52px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: #dff2e4;
+  color: var(--text-dark);
   font-weight: 700;
 }
 

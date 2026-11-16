@@ -1,0 +1,243 @@
+.team-comparisons-page {
+  box-sizing: border-box;
+  min-height: calc(100vh - 89px);
+  padding: 42px clamp(20px, 5vw, 72px);
+  color: var(--text-dark);
+}
+
+.team-comparisons-heading {
+  margin-bottom: 24px;
+}
+
+.team-comparisons-heading h1 {
+  margin: 4px 0;
+  color: var(--bg-header);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.team-comparisons-heading p {
+  margin: 0;
+  color: #686a70;
+}
+
+.team-comparisons-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px 32px;
+  margin-top: 20px;
+}
+
+.team-comparisons-manager-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-comparisons-manager-selector label,
+.team-comparisons-strengths-label {
+  color: #626475;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.team-comparisons-select-wrap {
+  position: relative;
+}
+
+.team-comparisons-select-wrap::after {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  color: var(--bg-header);
+  content: '⌄';
+  font-size: 1rem;
+  pointer-events: none;
+  transform: translateY(-60%);
+}
+
+.team-comparisons-select-wrap select {
+  min-width: 190px;
+  padding: 11px 42px 11px 14px;
+  border: 1px solid #ded8f4;
+  border-radius: 10px;
+  appearance: none;
+  background: #fff;
+  color: var(--text-dark);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.team-comparisons-select-wrap select:hover,
+.team-comparisons-select-wrap select:focus-visible {
+  border-color: var(--bg-header);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(109, 43, 249, 0.14);
+}
+
+.team-comparisons-select-wrap select:disabled {
+  color: #777;
+  cursor: wait;
+}
+
+.team-comparisons-strengths {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px 12px;
+}
+
+.team-comparisons-strength-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.team-comparisons-strength-chip {
+  padding: 5px 9px;
+  border: 1px solid #b9d8ef;
+  border-radius: 999px;
+  background: #eef6fc;
+  color: #1769aa;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.team-comparisons-no-strengths {
+  color: #686a70;
+  font-size: 0.85rem;
+}
+
+.team-comparison-table {
+  --team-columns: minmax(230px, 2.1fr) minmax(64px, 0.7fr)
+    minmax(94px, 1fr) minmax(94px, 1fr) repeat(8, minmax(64px, 0.8fr));
+
+  overflow-x: auto;
+  border: 1px solid #e0e1e5;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.team-comparison-header,
+.team-comparison-row {
+  box-sizing: border-box;
+  display: grid;
+  min-width: 1040px;
+  grid-template-columns: var(--team-columns);
+  align-items: center;
+  padding: 12px 14px 12px 32px;
+  text-align: center;
+}
+
+.team-comparison-header {
+  background: #f8f8fb;
+  color: #626475;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.team-comparison-header > span:first-child {
+  text-align: left;
+}
+
+.team-comparison-header button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.team-comparison-header button:hover,
+.team-comparison-header button:focus-visible {
+  color: var(--text-accent);
+}
+
+.team-comparison-row {
+  min-height: 62px;
+  border-top: 1px solid #ececf0;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-comparison-row > span,
+.team-comparison-row > strong {
+  white-space: nowrap;
+}
+
+.team-comparison-row > strong {
+  color: var(--bg-header);
+  font-weight: 700;
+}
+
+.team-comparison-row > .team-comparison-value.strength {
+  color: var(--text-dark);
+  background: #e3f0ff;
+  font-weight: 700;
+}
+
+.team-comparison-row > .team-comparison-value.best {
+  color: var(--text-dark);
+  background: #dff2e4;
+  font-weight: 700;
+}
+
+.team-comparison-row > .team-comparison-value.worst {
+  color: var(--text-dark);
+  background: #f8e1e1;
+  font-weight: 700;
+}
+
+.team-comparison-row > .team-comparison-value.strength,
+.team-comparison-row > .team-comparison-value.best,
+.team-comparison-row > .team-comparison-value.worst {
+  box-sizing: border-box;
+  justify-self: center;
+  min-width: 52px;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.team-comparison-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.team-comparison-identity > span:last-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.team-comparison-identity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-comparison-identity small {
+  color: #686a70;
+  font-size: 0.78rem;
+}
+
+.team-comparison-rank {
+  width: 24px;
+  flex: 0 0 24px;
+  color: #777;
+  font-size: 0.82rem;
+  text-align: center;
+}
