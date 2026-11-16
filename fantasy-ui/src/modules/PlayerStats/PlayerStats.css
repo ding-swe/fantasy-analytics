@@ -98,7 +98,7 @@
 
 .player-stats-roster-grid {
   --roster-columns: minmax(240px, 2.15fr) minmax(68px, 0.7fr)
-    minmax(86px, 0.95fr) minmax(86px, 0.95fr) repeat(8, minmax(65px, 0.8fr));
+    minmax(106px, 1.05fr) minmax(106px, 1.05fr) repeat(8, minmax(65px, 0.8fr));
 
   overflow-x: auto;
   border: 1px solid #e0e1e5;
@@ -222,9 +222,25 @@
 }
 
 .player-stats-average-stat strong {
+  display: block;
+  width: 100%;
   font-size: 0.95rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.player-stats-average-stat strong.has-trend {
+  position: relative;
+}
+
+.player-stats-average-stat strong.has-trend .stat-trend-slot {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  margin: 0;
+  transform: translateY(-50%);
 }
 
 .player-stats-player-details {
@@ -233,6 +249,14 @@
 
 .player-stats-game-rows {
   width: 100%;
+}
+
+.player-stats-week-divider {
+  padding: 7px 14px 7px 32px;
+  border-bottom: 1px solid #ececf0;
+  color: #85858d;
+  font-size: 0.78rem;
+  text-align: left;
 }
 
 .player-stats-game-row {
@@ -254,6 +278,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  padding-left: 2em;
   gap: 3px;
   text-align: left;
 }

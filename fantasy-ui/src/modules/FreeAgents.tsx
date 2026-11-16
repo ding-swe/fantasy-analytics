@@ -102,6 +102,7 @@ export default function FreeAgents() {
           players={data.players}
           averagesByPlayer={averagesByPlayer}
           onAveragesChange={handleAveragesChange}
+          trendScope="fantasy"
         />
       )}
     </main>

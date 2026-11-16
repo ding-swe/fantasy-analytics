@@ -19,10 +19,10 @@ class TeamComparison(BaseModel):
     turnovers: float
     three_pointers_made: float
     fantasy_points: float
+    current_week_fantasy_points: float
+    previous_week_fantasy_points: float
 
 
 class TeamComparisonResponse(BaseModel):
     season: str
-    games_considered: int
-    recent_days: int
     teams: list[TeamComparison]

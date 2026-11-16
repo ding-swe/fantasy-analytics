@@ -22,8 +22,27 @@ class PlayerGameLog(BaseModel):
     fantasy_points: int | float | None
 
 
+class PlayerWeeklyStats(BaseModel):
+    games_played: int
+    minutes: float | None
+    field_goals_made: float | None
+    field_goals_attempted: float | None
+    free_throws_made: float | None
+    free_throws_attempted: float | None
+    points: float | None
+    rebounds: float | None
+    assists: float | None
+    steals: float | None
+    blocks: float | None
+    turnovers: float | None
+    three_pointers_made: float | None
+    nba_fantasy_points: float | None
+
+
 class PlayerGameLogResponse(BaseModel):
     player_id: int
     player_name: str | None
     season: str
     games: list[PlayerGameLog]
+    current_week: PlayerWeeklyStats
+    previous_week: PlayerWeeklyStats

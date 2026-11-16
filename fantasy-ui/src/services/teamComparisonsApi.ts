@@ -18,12 +18,12 @@ interface ApiTeamComparison {
   turnovers: number;
   three_pointers_made: number;
   fantasy_points: number;
+  current_week_fantasy_points: number;
+  previous_week_fantasy_points: number;
 }
 
 interface ApiTeamComparisonResponse {
   season: string;
-  games_considered: number;
-  recent_days: number;
   teams: ApiTeamComparison[];
 }
 
@@ -45,12 +45,12 @@ export interface TeamComparison {
   turnovers: number;
   threePointersMade: number;
   fantasyPoints: number;
+  currentWeekFantasyPoints: number;
+  previousWeekFantasyPoints: number;
 }
 
 export interface TeamComparisonData {
   season: string;
-  gamesConsidered: number;
-  recentDays: number;
   teams: TeamComparison[];
 }
 
@@ -68,8 +68,6 @@ export async function fetchTeamComparisons(): Promise<TeamComparisonData> {
 
   return {
     season: data.season,
-    gamesConsidered: data.games_considered,
-    recentDays: data.recent_days,
     teams: data.teams.map((team) => ({
       managerId: team.manager_id,
       managerName: team.manager_name,
@@ -87,7 +85,9 @@ export async function fetchTeamComparisons(): Promise<TeamComparisonData> {
       blocks: team.blocks,
       turnovers: team.turnovers,
       threePointersMade: team.three_pointers_made,
-      fantasyPoints: team.fantasy_points
+      fantasyPoints: team.fantasy_points,
+      currentWeekFantasyPoints: team.current_week_fantasy_points,
+      previousWeekFantasyPoints: team.previous_week_fantasy_points
     }))
   };
 }

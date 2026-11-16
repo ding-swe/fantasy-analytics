@@ -2,7 +2,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import Game, Player, PlayerGameStats
-from app.schemas.player_stats import PlayerGameLog, PlayerGameLogResponse
+from app.schemas.player_stats import (
+    PlayerGameLog,
+    PlayerGameLogResponse,
+    PlayerWeeklyStats,
+)
+from app.services.weekly_stats import get_weekly_player_averages
 
 
 def get_player_game_log(
@@ -52,10 +57,13 @@ def get_player_game_log(
         )
         for stats, game, _player in rows
     ]
+    weekly = get_weekly_player_averages(db, season, [player_id])[player_id]
 
     return PlayerGameLogResponse(
         player_id=player_id,
         player_name=player_name,
         season=season,
         games=games,
+        current_week=PlayerWeeklyStats(**weekly["current_week"]),
+        previous_week=PlayerWeeklyStats(**weekly["previous_week"]),
     )

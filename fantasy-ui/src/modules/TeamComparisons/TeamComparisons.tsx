@@ -205,8 +205,8 @@ export default function TeamComparisons() {
         <h1>Team Comparisons</h1>
         <p>
           {data
-            ? `${data.season} · summed core-player averages from up to ${data.gamesConsidered} games in the last ${data.recentDays} days`
-            : 'Comparing recent team production'}
+            ? `${data.season} · summed core-player averages for this week`
+            : 'Comparing this week’s team production'}
         </p>
         <div className="team-comparisons-controls">
           <div className="team-comparisons-manager-selector">

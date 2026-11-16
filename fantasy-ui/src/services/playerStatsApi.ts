@@ -24,6 +24,25 @@ export interface PlayerGameLogResponse {
   player_name: string | null;
   season: string;
   games: PlayerGame[];
+  current_week: PlayerWeekStats;
+  previous_week: PlayerWeekStats;
+}
+
+export interface PlayerWeekStats {
+  games_played: number;
+  minutes: number | null;
+  field_goals_made: number | null;
+  field_goals_attempted: number | null;
+  free_throws_made: number | null;
+  free_throws_attempted: number | null;
+  points: number | null;
+  rebounds: number | null;
+  assists: number | null;
+  steals: number | null;
+  blocks: number | null;
+  turnovers: number | null;
+  three_pointers_made: number | null;
+  nba_fantasy_points: number | null;
 }
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';

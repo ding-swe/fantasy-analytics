@@ -45,11 +45,13 @@ const averageColumns: AverageColumn[] = [
 export default function PlayerTable({
   players,
   averagesByPlayer,
-  onAveragesChange
+  onAveragesChange,
+  trendScope = 'all'
 }: {
   players: PlayerTableItem[];
   averagesByPlayer: Record<number, PlayerAverageStats>;
   onAveragesChange: (playerId: number, averages: PlayerAverageStats) => void;
+  trendScope?: 'all' | 'fantasy';
 }) {
   const [sort, setSort] = useState<SortState>({
     key: 'fantasyPoints',
@@ -126,6 +128,7 @@ export default function PlayerTable({
           playerId={player.playerId}
           name={player.name}
           onAveragesChange={onAveragesChange}
+          trendScope={trendScope}
         />
       ))}
     </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { TeamComparison } from '../../services/teamComparisonsApi';
+import StatTrend from '../StatTrend';
 
 export type TeamStatTone = 'strength' | 'best' | 'worst';
 export type TeamStatTones = Partial<Record<string, TeamStatTone>>;
@@ -41,7 +42,15 @@ export default function TeamComparisonRow({
       <span className={statClass('blocks')} role="cell">{team.blocks.toFixed(1)}</span>
       <span className={statClass('turnovers')} role="cell">{team.turnovers.toFixed(1)}</span>
       <span className={statClass('threePointersMade')} role="cell">{team.threePointersMade.toFixed(1)}</span>
-      <strong className={statClass('fantasyPoints')} role="cell">{team.fantasyPoints.toFixed(1)}</strong>
+      <strong className={statClass('fantasyPoints')} role="cell">
+        {team.fantasyPoints.toFixed(1)}
+        <StatTrend
+          current={team.currentWeekFantasyPoints}
+          previous={team.previousWeekFantasyPoints}
+          label="Fantasy points"
+          minimumChange={0}
+        />
+      </strong>
     </div>
   );
 }

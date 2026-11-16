@@ -40,13 +40,13 @@ The schema stores NBA players, games, per-player game statistics, sync history, 
 
 The PostgreSQL service stores its data on disk in the data directory selected during installation. Stopping the service does not delete the database. Back up data with a PostgreSQL dump rather than copying the live data directory while the service is running.
 
-`GET /api/players/{player_id}/games?limit=7` reads up to seven recent games from PostgreSQL for the current season. `GET /api/rosters/current` returns the primary fantasy manager's core roster and stream-slot candidates. `POST /api/sync` starts an incremental NBA Stats sync in the background; poll `GET /api/sync/{run_id}` for status or `GET /api/sync/latest` for the latest run. The first sync imports the current season, while later runs overlap the last successful date through today so corrected rows are upserted safely.
+`GET /api/players/{player_id}/games?limit=7` reads up to seven recent games from PostgreSQL for the current season and returns weekly stat averages for Monday-to-date and the full preceding Monday-Sunday week. `GET /api/rosters/current` returns the primary fantasy manager's core roster and stream-slot candidates. `POST /api/sync` starts an incremental NBA Stats sync in the background; poll `GET /api/sync/{run_id}` for status or `GET /api/sync/latest` for the latest run. The first sync imports the current season, while later runs overlap the last successful date through today so corrected rows are upserted safely.
 
 Each sync also checks the completed box score for inactive players and stores a zero-stat line for each inactive player, including a zero fantasy-point value. This work is shared with `scripts/backfill_player_games.py`, so an offline full-season import can backfill those missed games as well. It makes one additional NBA Stats summary request per game returned; retries use increasing delays.
 
 `GET /api/free-agents?limit=20` returns the top unrostered players in the primary manager's fantasy league, ranked by average fantasy points over their last seven games in the current NBA season. Roster membership is derived from fantasy roster entries rather than duplicated on the player record.
 
-`GET /api/team-comparisons` sums each manager's core players' per-game stat averages across up to seven games each, considering games played in the last 21 days. With missed-game rows available, injured or inactive roster players contribute zeros. Stream candidates are excluded; totals include minutes, shooting makes/attempts, points, rebounds, assists, steals, blocks, turnovers, threes, and fantasy points.
+`GET /api/team-comparisons` sums each manager's core players' per-game stat averages across up to seven games each, considering games played in the last 21 days. With missed-game rows available, injured or inactive roster players contribute zeros. Stream candidates are excluded; totals include minutes, shooting makes/attempts, points, rebounds, assists, steals, blocks, turnovers, threes, and fantasy points. The team response also includes current-week and full-previous-week fantasy averages for trend indicators.
 
 ## Run the UI
 

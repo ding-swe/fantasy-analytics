@@ -1,0 +1,24 @@
+.stat-trend-slot {
+  display: inline-flex;
+  width: 14px;
+  height: 1em;
+  flex: 0 0 14px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.stat-trend-slot svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.stat-trend.up {
+  color: #18794e;
+}
+
+.stat-trend.down {
+  color: #b42318;
+}

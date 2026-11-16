@@ -1,13 +1,11 @@
-from datetime import date, timedelta
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import FantasyLeague, FantasyManager, FantasyRosterEntry, Game, PlayerGameStats
+from app.db.models import FantasyLeague, FantasyManager, FantasyRosterEntry
 from app.schemas.team_comparisons import TeamComparison, TeamComparisonResponse
-from app.services.free_agents import GAMES_TO_AVERAGE, current_nba_season
+from app.services.free_agents import current_nba_season
+from app.services.weekly_stats import get_weekly_player_averages
 
-RECENT_DAYS = 21
 STAT_COLUMNS = (
     "minutes",
     "field_goals_made",
@@ -27,50 +25,40 @@ STAT_COLUMNS = (
 
 def get_team_comparisons(db: Session) -> TeamComparisonResponse:
     season = current_nba_season()
-    recent_cutoff = date.today() - timedelta(days=RECENT_DAYS)
-    ranked_games = (
-        select(
-            PlayerGameStats.player_id.label("player_id"),
-            Game.game_date.label("game_date"),
-            *[
-                getattr(PlayerGameStats, column).label(column)
-                for column in STAT_COLUMNS
-            ],
-            func.row_number()
-            .over(
-                partition_by=PlayerGameStats.player_id,
-                order_by=(Game.game_date.desc(), Game.id.desc()),
-            )
-            .label("game_rank"),
+    weekly_by_player = get_weekly_player_averages(db, season)
+    weekly_points_by_manager: dict[int, dict[str, float]] = {}
+    core_entries = db.execute(
+        select(FantasyRosterEntry.manager_id, FantasyRosterEntry.player_id).where(
+            FantasyRosterEntry.roster_group == "core"
         )
-        .join(Game, Game.id == PlayerGameStats.game_id)
-        .where(Game.season == season, Game.game_date >= recent_cutoff)
-    ).subquery()
-
-    player_averages = (
-        select(
-            ranked_games.c.player_id,
-            *[
-                func.avg(getattr(ranked_games.c, column)).label(column)
-                for column in STAT_COLUMNS
-            ],
+    ).all()
+    for manager_id, player_id in core_entries:
+        weekly = weekly_by_player.get(player_id, {})
+        points = weekly_points_by_manager.setdefault(
+            manager_id, {"current_week": 0.0, "previous_week": 0.0}
         )
-        .where(ranked_games.c.game_rank <= GAMES_TO_AVERAGE)
-        .group_by(ranked_games.c.player_id)
-    ).subquery()
+        points["current_week"] += float(
+            (weekly.get("current_week") or {}).get("nba_fantasy_points") or 0
+        )
+        points["previous_week"] += float(
+            (weekly.get("previous_week") or {}).get("nba_fantasy_points") or 0
+        )
 
-    teams = db.execute(
+    weekly_totals: dict[int, dict[str, float]] = {}
+    for manager_id, player_id in core_entries:
+        current = weekly_by_player.get(player_id, {}).get("current_week") or {}
+        totals = weekly_totals.setdefault(
+            manager_id, {column: 0.0 for column in STAT_COLUMNS}
+        )
+        for column in STAT_COLUMNS:
+            totals[column] += float(current.get(column) or 0)
+
+    managers = db.execute(
         select(
             FantasyManager.id,
             FantasyManager.manager_name,
             FantasyManager.team_name,
             func.count(FantasyRosterEntry.player_id).label("core_player_count"),
-            *[
-                func.coalesce(func.sum(getattr(player_averages.c, column)), 0).label(
-                    column
-                )
-                for column in STAT_COLUMNS
-            ],
         )
         .join(FantasyLeague, FantasyLeague.id == FantasyManager.league_id)
         .outerjoin(
@@ -78,18 +66,12 @@ def get_team_comparisons(db: Session) -> TeamComparisonResponse:
             (FantasyRosterEntry.manager_id == FantasyManager.id)
             & (FantasyRosterEntry.roster_group == "core"),
         )
-        .outerjoin(
-            player_averages,
-            player_averages.c.player_id == FantasyRosterEntry.player_id,
-        )
         .group_by(FantasyManager.id)
         .order_by(FantasyManager.team_name)
     ).all()
 
     return TeamComparisonResponse(
         season=season,
-        games_considered=GAMES_TO_AVERAGE,
-        recent_days=RECENT_DAYS,
         teams=[
             TeamComparison(
                 manager_id=row.id,
@@ -97,11 +79,19 @@ def get_team_comparisons(db: Session) -> TeamComparisonResponse:
                 team_name=row.team_name,
                 core_player_count=row.core_player_count,
                 **{
-                    field: float(getattr(row, field) or 0)
+                    field: weekly_totals.get(row.id, {}).get(field, 0.0)
                     for field in STAT_COLUMNS
                     if field != "nba_fantasy_points"
                 },
-                fantasy_points=float(row.nba_fantasy_points or 0),
+                fantasy_points=weekly_totals.get(row.id, {}).get(
+                    "nba_fantasy_points", 0.0
+                ),
+                current_week_fantasy_points=weekly_points_by_manager.get(
+                    row.id, {}
+                ).get("current_week", 0.0),
+                previous_week_fantasy_points=weekly_points_by_manager.get(
+                    row.id, {}
+                ).get("previous_week", 0.0),
             )
             for row in teams
         ],

@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
   fetchPlayerGames,
   PlayerGame,
-  PlayerGameLogResponse
+  PlayerGameLogResponse,
+  PlayerWeekStats
 } from '../../services/playerStatsApi';
+import StatTrend from '../StatTrend';
 import './PlayerStats.css';
 
 export interface PlayerAverageStats {
@@ -26,6 +28,7 @@ interface PlayerGameLogProps {
   playerId: number;
   name: string;
   onAveragesChange: (playerId: number, averages: PlayerAverageStats) => void;
+  trendScope?: 'all' | 'fantasy';
 }
 
 interface PlayerLoadState {
@@ -99,6 +102,31 @@ function calculateAverages(games: PlayerGame[]): PlayerAverageStats {
     threePointersMade: average(games, (game) => game.three_pointers_made),
     fantasyPoints: average(games, (game) => game.fantasy_points)
   };
+}
+
+function calculateWeeklyAverages(week: PlayerWeekStats): PlayerAverageStats {
+  return {
+    minutes: week.minutes,
+    fieldGoalsMade: week.field_goals_made,
+    fieldGoalsAttempted: week.field_goals_attempted,
+    freeThrowsMade: week.free_throws_made,
+    freeThrowsAttempted: week.free_throws_attempted,
+    points: week.points,
+    rebounds: week.rebounds,
+    assists: week.assists,
+    steals: week.steals,
+    blocks: week.blocks,
+    turnovers: week.turnovers,
+    threePointersMade: week.three_pointers_made,
+    fantasyPoints: week.nba_fantasy_points
+  };
+}
+
+function currentWeekStart(): string {
+  const today = new Date();
+  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
 }
 
 function ComparedNumber({
@@ -186,24 +214,58 @@ function ComparedPercentage({
   );
 }
 
-function AverageStat({ label, value }: { label: string; value: string }) {
+function AverageStat({
+  label,
+  value,
+  trend
+}: {
+  label: string;
+  value: string;
+  trend?: { current: number | null; previous: number | null; inverse?: boolean };
+}) {
   return (
     <span className="player-stats-average-stat">
       <span>{label}</span>
-      <strong>{value}</strong>
+      <strong className={`player-stats-average-value${trend ? ' has-trend' : ''}`}>
+        <span>{value}</span>
+        {trend && (
+          <StatTrend
+            current={trend.current}
+            previous={trend.previous}
+            inverse={trend.inverse}
+            label={label}
+          />
+        )}
+      </strong>
     </span>
   );
+}
+
+function percentFromWeek(week: PlayerWeekStats, made: keyof PlayerWeekStats, attempted: keyof PlayerWeekStats) {
+  const madeValue = week[made];
+  const attemptedValue = week[attempted];
+  if (
+    typeof madeValue !== 'number' ||
+    typeof attemptedValue !== 'number' ||
+    attemptedValue <= 0
+  ) {
+    return null;
+  }
+  return madeValue / attemptedValue;
 }
 
 function PlayerGameRows({
   games,
   averages,
-  playerName
+  playerName,
+  thisWeekStart
 }: {
   games: PlayerGame[];
   averages: PlayerAverageStats;
   playerName: string;
+  thisWeekStart: string;
 }) {
+  let lastWeekDividerShown = false;
   return (
     <div
       className="player-stats-game-rows"
@@ -211,8 +273,14 @@ function PlayerGameRows({
       aria-label={`${playerName} recent games`}
     >
       {games.map((game) => {
+        const isLastWeek = game.game_date.slice(0, 10) < thisWeekStart;
+        const showLastWeekDivider = isLastWeek && !lastWeekDividerShown;
+        if (showLastWeekDivider) lastWeekDividerShown = true;
         const opponent = opponentAbbreviation(game);
-        return (
+        return <React.Fragment key={game.game_id}>
+          {showLastWeekDivider && (
+            <div className="player-stats-week-divider" role="separator">Last week</div>
+          )}
           <div className="player-stats-game-row" role="row" key={game.game_id}>
             <span
               className="player-stats-game-context"
@@ -336,7 +404,7 @@ function PlayerGameRows({
               />
             </span>
           </div>
-        );
+        </React.Fragment>;
       })}
     </div>
   );
@@ -345,7 +413,8 @@ function PlayerGameRows({
 export default function PlayerGameLog({
   playerId,
   name,
-  onAveragesChange
+  onAveragesChange,
+  trendScope = 'all'
 }: PlayerGameLogProps) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState<PlayerLoadState>({
@@ -367,7 +436,7 @@ export default function PlayerGameLog({
     fetchPlayerGames(playerId)
       .then((data) => {
         if (cancelled) return;
-        onAveragesChange(playerId, calculateAverages(data.games));
+        onAveragesChange(playerId, calculateWeeklyAverages(data.current_week));
         setState({ data, error: null, loading: false });
       })
       .catch((requestError: Error) => {
@@ -382,13 +451,34 @@ export default function PlayerGameLog({
   }, [playerId, onAveragesChange, refreshKey]);
 
   const games = state.data?.games || [];
-  const averages = calculateAverages(games);
-  const getAverage = (getValue: (game: PlayerGame) => number | string | null) =>
-    state.loading ? '…' : formatNumber(average(games, getValue));
+  const averages = state.data
+    ? calculateWeeklyAverages(state.data.current_week)
+    : calculateAverages(games);
+  const currentWeek = state.data?.current_week;
+  const getAverage = (field: keyof PlayerWeekStats) =>
+    state.loading ? '…' : formatNumber(currentWeek?.[field] ?? null);
   const getAverageAttempts = (
-    made: (game: PlayerGame) => number | null,
-    attempted: (game: PlayerGame) => number | null
+    made: keyof PlayerWeekStats,
+    attempted: keyof PlayerWeekStats
   ) => `${getAverage(made)} / ${getAverage(attempted)}`;
+  const weekly = state.data;
+  const trend = (
+    field: keyof PlayerWeekStats,
+    inverse = false
+  ) => ({
+    current: weekly ? (weekly.current_week[field] as number | null) : null,
+    previous: weekly ? (weekly.previous_week[field] as number | null) : null,
+    inverse
+  });
+  const shootingTrend = (
+    made: keyof PlayerWeekStats,
+    attempted: keyof PlayerWeekStats
+  ) => ({
+    current: weekly ? percentFromWeek(weekly.current_week, made, attempted) : null,
+    previous: weekly ? percentFromWeek(weekly.previous_week, made, attempted) : null
+  });
+  const shouldShow = (field: keyof PlayerWeekStats) =>
+    trendScope === 'all' || field === 'nba_fantasy_points';
 
   return (
     <details className="player-stats-player">
@@ -400,40 +490,74 @@ export default function PlayerGameLog({
         </span>
 
         <span className="player-stats-average-grid">
-          <AverageStat label="MIN" value={getAverage((game) => game.minutes)} />
+          <AverageStat
+            label="MIN"
+            value={getAverage('minutes')}
+            trend={shouldShow('minutes') ? trend('minutes') : undefined}
+          />
           <AverageStat
             label="FGM / FGA"
             value={getAverageAttempts(
-              (game) => game.field_goals_made,
-              (game) => game.field_goals_attempted
+              'field_goals_made',
+              'field_goals_attempted'
             )}
+            trend={shouldShow('field_goals_made')
+              ? shootingTrend('field_goals_made', 'field_goals_attempted')
+              : undefined}
           />
           <AverageStat
             label="FTM / FTA"
             value={getAverageAttempts(
-              (game) => game.free_throws_made,
-              (game) => game.free_throws_attempted
+              'free_throws_made',
+              'free_throws_attempted'
             )}
+            trend={shouldShow('free_throws_made')
+              ? shootingTrend('free_throws_made', 'free_throws_attempted')
+              : undefined}
           />
-          <AverageStat label="PTS" value={getAverage((game) => game.points)} />
+          <AverageStat
+            label="PTS"
+            value={getAverage('points')}
+            trend={shouldShow('points') ? trend('points') : undefined}
+          />
           <AverageStat
             label="REB"
-            value={getAverage((game) => game.rebounds)}
+            value={getAverage('rebounds')}
+            trend={shouldShow('rebounds') ? trend('rebounds') : undefined}
           />
-          <AverageStat label="AST" value={getAverage((game) => game.assists)} />
-          <AverageStat label="STL" value={getAverage((game) => game.steals)} />
-          <AverageStat label="BLK" value={getAverage((game) => game.blocks)} />
+          <AverageStat
+            label="AST"
+            value={getAverage('assists')}
+            trend={shouldShow('assists') ? trend('assists') : undefined}
+          />
+          <AverageStat
+            label="STL"
+            value={getAverage('steals')}
+            trend={shouldShow('steals') ? trend('steals') : undefined}
+          />
+          <AverageStat
+            label="BLK"
+            value={getAverage('blocks')}
+            trend={shouldShow('blocks') ? trend('blocks') : undefined}
+          />
           <AverageStat
             label="TO"
-            value={getAverage((game) => game.turnovers)}
+            value={getAverage('turnovers')}
+            trend={shouldShow('turnovers') ? trend('turnovers', true) : undefined}
           />
           <AverageStat
             label="3PM"
-            value={getAverage((game) => game.three_pointers_made)}
+            value={getAverage('three_pointers_made')}
+            trend={shouldShow('three_pointers_made')
+              ? trend('three_pointers_made')
+              : undefined}
           />
           <AverageStat
             label="Fantasy"
-            value={getAverage((game) => game.fantasy_points)}
+            value={getAverage('nba_fantasy_points')}
+            trend={shouldShow('nba_fantasy_points')
+              ? trend('nba_fantasy_points')
+              : undefined}
           />
         </span>
       </summary>
@@ -453,6 +577,7 @@ export default function PlayerGameLog({
             games={games}
             averages={averages}
             playerName={state.data?.player_name || name}
+            thisWeekStart={currentWeekStart()}
           />
         )}
       </div>
