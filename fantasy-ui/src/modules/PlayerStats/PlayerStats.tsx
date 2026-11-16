@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { PlayerAverageStats } from './PlayerGameLog';
+import {
+  PlayerAverageStats,
+  PlayerWeeklySummary
+} from './PlayerGameLog';
 import PlayerTable from './PlayerTable';
+import WeeklyCategoryCard, { WeeklyCategoryIncrease } from './WeeklyCategoryCard';
+import WeeklyFantasyCard from './WeeklyFantasyCard';
 import {
   CurrentRoster,
   fetchManagerRoster,
@@ -18,6 +23,9 @@ export default function PlayerStats() {
   const [managersLoading, setManagersLoading] = useState(true);
   const [averagesByPlayer, setAveragesByPlayer] = useState<
     Record<number, PlayerAverageStats>
+  >({});
+  const [weeklyFantasyByPlayer, setWeeklyFantasyByPlayer] = useState<
+    Record<number, PlayerWeeklySummary>
   >({});
 
   useEffect(() => {
@@ -58,6 +66,7 @@ export default function PlayerStats() {
     setRosterError(null);
     setRoster(null);
     setAveragesByPlayer({});
+    setWeeklyFantasyByPlayer({});
 
     fetchManagerRoster(selectedManagerId)
       .then((data) => {
@@ -79,10 +88,18 @@ export default function PlayerStats() {
   }, [selectedManagerId]);
 
   const handleAveragesChange = useCallback(
-    (playerId: number, averages: PlayerAverageStats) => {
+    (
+      playerId: number,
+      averages: PlayerAverageStats,
+      weeklySummary: PlayerWeeklySummary
+    ) => {
       setAveragesByPlayer((previous) => ({
         ...previous,
         [playerId]: averages
+      }));
+      setWeeklyFantasyByPlayer((previous) => ({
+        ...previous,
+        [playerId]: weeklySummary
       }));
     },
     []
@@ -114,6 +131,46 @@ export default function PlayerStats() {
           </div>
         </div>
       </header>
+
+      {roster && (() => {
+        const rosterPlayers = [
+          ...roster.corePlayers,
+          ...roster.streamSlotCandidates
+        ];
+        const uniquePlayerIds = [...new Set(rosterPlayers.map((player) => player.playerId))];
+        const loaded = uniquePlayerIds.every((playerId) =>
+          Object.prototype.hasOwnProperty.call(weeklyFantasyByPlayer, playerId)
+        );
+        const totals = uniquePlayerIds.reduce(
+          (sum, playerId) => {
+            const weekly = weeklyFantasyByPlayer[playerId];
+            if (weekly) {
+              sum.current += weekly.fantasyPoints.current;
+              sum.previous += weekly.fantasyPoints.previous;
+            }
+            return sum;
+          },
+          { current: 0, previous: 0 }
+        );
+        const categoryIncrease = loaded
+          ? findBiggestWeeklyCategoryIncrease(
+              uniquePlayerIds
+                .map((playerId) => weeklyFantasyByPlayer[playerId])
+                .filter((weekly): weekly is PlayerWeeklySummary => Boolean(weekly))
+            )
+          : null;
+
+        return (
+          <div className="weekly-summary-cards">
+            <WeeklyFantasyCard
+              current={totals.current}
+              previous={totals.previous}
+              loading={!loaded || rosterLoading}
+            />
+            <WeeklyCategoryCard increase={categoryIncrease} loading={!loaded || rosterLoading} />
+          </div>
+        );
+      })()}
 
       {rosterLoading && <p className="player-stats-message">Loading roster…</p>}
       {rosterError && (
@@ -163,4 +220,78 @@ export default function PlayerStats() {
       )}
     </main>
   );
+}
+
+function findBiggestWeeklyCategoryIncrease(
+  players: PlayerWeeklySummary[]
+): WeeklyCategoryIncrease | null {
+  const sum = (
+    period: 'currentWeek' | 'previousWeek',
+    key: keyof PlayerWeeklySummary['currentWeek']
+  ) =>
+    players.reduce((total, player) => {
+      const value = player[period][key];
+      return total + (typeof value === 'number' ? value : 0);
+    }, 0);
+
+  const shootingPercentage = (
+    period: 'currentWeek' | 'previousWeek',
+    madeKey: 'field_goals_made' | 'free_throws_made',
+    attemptedKey: 'field_goals_attempted' | 'free_throws_attempted'
+  ) => {
+    const attempted = sum(period, attemptedKey);
+    return attempted > 0 ? sum(period, madeKey) / attempted : null;
+  };
+
+  const categories: {
+    label: string;
+    current: number | null;
+    previous: number | null;
+  }[] = [
+    {
+      label: 'MIN',
+      current: sum('currentWeek', 'minutes'),
+      previous: sum('previousWeek', 'minutes')
+    },
+    {
+      label: 'FG%',
+      current: shootingPercentage('currentWeek', 'field_goals_made', 'field_goals_attempted'),
+      previous: shootingPercentage('previousWeek', 'field_goals_made', 'field_goals_attempted')
+    },
+    {
+      label: 'FT%',
+      current: shootingPercentage('currentWeek', 'free_throws_made', 'free_throws_attempted'),
+      previous: shootingPercentage('previousWeek', 'free_throws_made', 'free_throws_attempted')
+    },
+    ...([
+      ['3PM', 'three_pointers_made'],
+      ['PTS', 'points'],
+      ['REB', 'rebounds'],
+      ['AST', 'assists'],
+      ['STL', 'steals'],
+      ['BLK', 'blocks'],
+      ['TO', 'turnovers'],
+      ['Fantasy', 'nba_fantasy_points']
+    ] as const).map(([label, key]) => ({
+      label,
+      current: sum('currentWeek', key),
+      previous: sum('previousWeek', key)
+    }))
+  ];
+
+  return categories.reduce<WeeklyCategoryIncrease | null>((best, category) => {
+    if (
+      category.current === null ||
+      category.previous === null ||
+      category.previous <= 0 ||
+      category.current <= category.previous
+    ) {
+      return best;
+    }
+
+    const percentIncrease = (category.current - category.previous) / category.previous;
+    return !best || percentIncrease > best.percentIncrease
+      ? { label: category.label, percentIncrease }
+      : best;
+  }, null);
 }

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import PlayerGameLog, { PlayerAverageStats } from './PlayerGameLog';
+import PlayerGameLog, {
+  PlayerAverageStats,
+  PlayerWeeklySummary
+} from './PlayerGameLog';
 
 export interface PlayerTableItem {
   playerId: number;
@@ -50,7 +53,11 @@ export default function PlayerTable({
 }: {
   players: PlayerTableItem[];
   averagesByPlayer: Record<number, PlayerAverageStats>;
-  onAveragesChange: (playerId: number, averages: PlayerAverageStats) => void;
+  onAveragesChange: (
+    playerId: number,
+    averages: PlayerAverageStats,
+    weeklySummary: PlayerWeeklySummary
+  ) => void;
   trendScope?: 'all' | 'fantasy';
 }) {
   const [sort, setSort] = useState<SortState>({

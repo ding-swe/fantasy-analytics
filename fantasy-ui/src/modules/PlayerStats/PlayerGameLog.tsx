@@ -24,10 +24,23 @@ export interface PlayerAverageStats {
   fantasyPoints: number | null;
 }
 
+export interface PlayerWeeklySummary {
+  fantasyPoints: {
+    current: number;
+    previous: number;
+  };
+  currentWeek: PlayerWeekStats;
+  previousWeek: PlayerWeekStats;
+}
+
 interface PlayerGameLogProps {
   playerId: number;
   name: string;
-  onAveragesChange: (playerId: number, averages: PlayerAverageStats) => void;
+  onAveragesChange: (
+    playerId: number,
+    averages: PlayerAverageStats,
+    weeklySummary: PlayerWeeklySummary
+  ) => void;
   trendScope?: 'all' | 'fantasy';
 }
 
@@ -120,6 +133,10 @@ function calculateWeeklyAverages(week: PlayerWeekStats): PlayerAverageStats {
     threePointersMade: week.three_pointers_made,
     fantasyPoints: week.nba_fantasy_points
   };
+}
+
+function weeklyFantasyTotal(week: PlayerWeekStats): number {
+  return (week.nba_fantasy_points ?? 0) * week.games_played;
 }
 
 function currentWeekStart(): string {
@@ -436,7 +453,14 @@ export default function PlayerGameLog({
     fetchPlayerGames(playerId)
       .then((data) => {
         if (cancelled) return;
-        onAveragesChange(playerId, calculateWeeklyAverages(data.current_week));
+        onAveragesChange(playerId, calculateWeeklyAverages(data.current_week), {
+          fantasyPoints: {
+            current: weeklyFantasyTotal(data.current_week),
+            previous: weeklyFantasyTotal(data.previous_week)
+          },
+          currentWeek: data.current_week,
+          previousWeek: data.previous_week
+        });
         setState({ data, error: null, loading: false });
       })
       .catch((requestError: Error) => {
