@@ -347,6 +347,7 @@ export default function PlayerGameLog({
   name,
   onAveragesChange
 }: PlayerGameLogProps) {
+  const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState<PlayerLoadState>({
     data: null,
     error: null,
@@ -354,7 +355,14 @@ export default function PlayerGameLog({
   });
 
   useEffect(() => {
+    const refresh = () => setRefreshKey((current) => current + 1);
+    window.addEventListener('basketbase:sync-complete', refresh);
+    return () => window.removeEventListener('basketbase:sync-complete', refresh);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
+    setState((previous) => ({ ...previous, loading: true, error: null }));
 
     fetchPlayerGames(playerId)
       .then((data) => {
@@ -371,7 +379,7 @@ export default function PlayerGameLog({
     return () => {
       cancelled = true;
     };
-  }, [playerId, onAveragesChange]);
+  }, [playerId, onAveragesChange, refreshKey]);
 
   const games = state.data?.games || [];
   const averages = calculateAverages(games);

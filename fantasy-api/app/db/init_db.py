@@ -21,6 +21,9 @@ def main() -> None:
                 "ADD COLUMN IF NOT EXISTS opponent_team_abbreviation VARCHAR(5)"
             )
         )
+        connection.execute(text("ALTER TABLE sync_runs ADD COLUMN IF NOT EXISTS season VARCHAR(7)"))
+        connection.execute(text("ALTER TABLE sync_runs ADD COLUMN IF NOT EXISTS date_from DATE"))
+        connection.execute(text("ALTER TABLE sync_runs ADD COLUMN IF NOT EXISTS date_to DATE"))
         connection.execute(
             text(
                 "CREATE INDEX IF NOT EXISTS ix_fantasy_roster_entries_player_id "

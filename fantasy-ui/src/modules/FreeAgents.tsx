@@ -21,6 +21,7 @@ const emptyAverages = (fantasyPoints: number): PlayerAverageStats => ({
 });
 
 export default function FreeAgents() {
+  const [refreshKey, setRefreshKey] = useState(0);
   const [data, setData] = useState<FreeAgentList | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +30,15 @@ export default function FreeAgents() {
   >({});
 
   useEffect(() => {
+    const refresh = () => setRefreshKey((current) => current + 1);
+    window.addEventListener('basketbase:sync-complete', refresh);
+    return () => window.removeEventListener('basketbase:sync-complete', refresh);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
 
     fetchFreeAgents()
       .then((freeAgentList) => {
@@ -55,7 +64,7 @@ export default function FreeAgents() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   const handleAveragesChange = useCallback(
     (playerId: number, averages: PlayerAverageStats) => {

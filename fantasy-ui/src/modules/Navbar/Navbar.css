@@ -133,3 +133,62 @@
     border-bottom-color: var(--bg-header);
     color: var(--bg-header);
 }
+
+.sync-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-width: 132px;
+    margin: 7px 0 7px auto;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 7px;
+    background: #171717;
+    color: #fff;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 160ms ease;
+}
+
+.sync-button:hover:not(:disabled) {
+    background: #333;
+}
+
+.sync-button.syncing,
+.sync-button:disabled {
+    background: #92949a;
+    cursor: wait;
+}
+
+.sync-button.complete {
+    background: var(--bg-header);
+    cursor: default;
+}
+
+.sync-button.failed {
+    background: #a12424;
+}
+
+.sync-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.42);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: sync-spin 700ms linear infinite;
+}
+
+@keyframes sync-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 620px) {
+    .sync-button {
+        min-width: 0;
+        padding: 0 10px;
+        font-size: 0.8rem;
+    }
+}

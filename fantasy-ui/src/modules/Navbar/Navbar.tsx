@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import SyncButton from './SyncButton';
 import './Navbar.css';
 
 interface Props {
@@ -102,6 +103,7 @@ export default function Navbar(props: Props) {
         >
           Team Comparisons
         </NavLink>
+        <SyncButton />
       </nav>
     </div>
   );

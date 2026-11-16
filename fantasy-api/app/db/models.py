@@ -71,6 +71,9 @@ class SyncRun(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    season: Mapped[str | None] = mapped_column(String(7))
+    date_from: Mapped[date | None] = mapped_column(Date)
+    date_to: Mapped[date | None] = mapped_column(Date)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_through_date: Mapped[date | None] = mapped_column(Date)

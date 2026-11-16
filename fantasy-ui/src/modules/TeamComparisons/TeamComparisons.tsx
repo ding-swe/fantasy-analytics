@@ -75,6 +75,7 @@ const categories: Category[] = [
 ];
 
 export default function TeamComparisons() {
+  const [refreshKey, setRefreshKey] = useState(0);
   const [data, setData] = useState<TeamComparisonData | null>(null);
   const [managers, setManagers] = useState<RosterManager[]>([]);
   const [selectedManagerId, setSelectedManagerId] = useState<number | null>(null);
@@ -84,7 +85,15 @@ export default function TeamComparisons() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
+    const refresh = () => setRefreshKey((current) => current + 1);
+    window.addEventListener('basketbase:sync-complete', refresh);
+    return () => window.removeEventListener('basketbase:sync-complete', refresh);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
     Promise.all([fetchTeamComparisons(), fetchRosterManagers()])
       .then(([result, rosterManagers]) => {
         if (!cancelled) {
@@ -92,8 +101,10 @@ export default function TeamComparisons() {
           setManagers(rosterManagers.managers);
           const primaryManagerId =
             rosterManagers.managers.find((manager) => manager.isPrimary)?.managerId;
-          setSelectedManagerId(
-            primaryManagerId ?? result.teams[0]?.managerId ?? null
+          setSelectedManagerId((previous) =>
+            previous !== null && result.teams.some((team) => team.managerId === previous)
+              ? previous
+              : primaryManagerId ?? result.teams[0]?.managerId ?? null
           );
         }
       })
@@ -107,7 +118,7 @@ export default function TeamComparisons() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   const sortedTeams = useMemo(() => {
     if (!data) return [];
