@@ -93,6 +93,6 @@ def get_team_comparisons(db: Session) -> TeamComparisonResponse:
                     row.id, {}
                 ).get("previous_week", 0.0),
             )
-            for row in teams
+            for row in managers
         ],
     )

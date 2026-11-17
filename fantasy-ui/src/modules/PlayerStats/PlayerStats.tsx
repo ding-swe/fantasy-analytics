@@ -137,7 +137,7 @@ export default function PlayerStats() {
           ...roster.corePlayers,
           ...roster.streamSlotCandidates
         ];
-        const uniquePlayerIds = [...new Set(rosterPlayers.map((player) => player.playerId))];
+        const uniquePlayerIds = Array.from(new Set(rosterPlayers.map((player) => player.playerId)));
         const loaded = uniquePlayerIds.every((playerId) =>
           Object.prototype.hasOwnProperty.call(weeklyFantasyByPlayer, playerId)
         );
