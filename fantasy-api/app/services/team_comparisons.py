@@ -1,98 +1,188 @@
-from sqlalchemy import func, select
+from dataclasses import dataclass
+from threading import Lock
+from time import monotonic
+from xml.etree import ElementTree
+
+import requests
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import FantasyLeague, FantasyManager, FantasyRosterEntry
-from app.schemas.team_comparisons import TeamComparison, TeamComparisonResponse
-from app.services.free_agents import current_nba_season
-from app.services.weekly_stats import get_weekly_player_averages
-
-STAT_COLUMNS = (
-    "minutes",
-    "field_goals_made",
-    "field_goals_attempted",
-    "free_throws_made",
-    "free_throws_attempted",
-    "points",
-    "rebounds",
-    "assists",
-    "steals",
-    "blocks",
-    "turnovers",
-    "three_pointers_made",
-    "nba_fantasy_points",
+from app.db.models import SyncRun
+from app.schemas.team_comparisons import (
+    MatchupTeam,
+    ScoringCategory,
+    TeamComparisonResponse,
+    YahooMatchup,
+)
+from app.services.yahoo_sync import (
+    FANTASY_URL,
+    YahooSyncError,
+    read_authorization,
+    refresh_yahoo_access,
+    yahoo_credentials,
 )
 
 
-def get_team_comparisons(db: Session) -> TeamComparisonResponse:
-    season = current_nba_season()
-    weekly_by_player = get_weekly_player_averages(db, season)
-    weekly_points_by_manager: dict[int, dict[str, float]] = {}
-    core_entries = db.execute(
-        select(FantasyRosterEntry.manager_id, FantasyRosterEntry.player_id).where(
-            FantasyRosterEntry.roster_group == "core"
-        )
-    ).all()
-    for manager_id, player_id in core_entries:
-        weekly = weekly_by_player.get(player_id, {})
-        points = weekly_points_by_manager.setdefault(
-            manager_id, {"current_week": 0.0, "previous_week": 0.0}
-        )
-        points["current_week"] += float(
-            (weekly.get("current_week") or {}).get("nba_fantasy_points") or 0
-        )
-        points["previous_week"] += float(
-            (weekly.get("previous_week") or {}).get("nba_fantasy_points") or 0
-        )
+CACHE_TTL_SECONDS = 30 * 60
 
-    weekly_totals: dict[int, dict[str, float]] = {}
-    for manager_id, player_id in core_entries:
-        current = weekly_by_player.get(player_id, {}).get("current_week") or {}
-        totals = weekly_totals.setdefault(
-            manager_id, {column: 0.0 for column in STAT_COLUMNS}
-        )
-        for column in STAT_COLUMNS:
-            totals[column] += float(current.get(column) or 0)
 
-    managers = db.execute(
-        select(
-            FantasyManager.id,
-            FantasyManager.manager_name,
-            FantasyManager.team_name,
-            func.count(FantasyRosterEntry.player_id).label("core_player_count"),
+@dataclass(frozen=True)
+class CachedScoreboard:
+    expires_at: float
+    sync_revision: int | None
+    scoreboard: TeamComparisonResponse
+
+
+_scoreboard_cache: dict[tuple[str, str, int | None], CachedScoreboard] = {}
+_cache_lock = Lock()
+
+
+class MatchupWeekUnavailable(Exception):
+    pass
+
+
+def parse_scoreboard(
+    content: bytes, league_key: str, requested_week: int | None = None
+) -> TeamComparisonResponse:
+    league = ElementTree.fromstring(content).find("{*}league")
+    if league is None or league.findtext("{*}league_key") != league_key:
+        raise YahooSyncError("Yahoo did not return the requested league.")
+
+    start_week = int(league.findtext("{*}start_week", "0"))
+    current_week = int(league.findtext("{*}current_week", "0"))
+    if requested_week is not None and not start_week <= requested_week <= current_week:
+        raise MatchupWeekUnavailable("Choose a week from the start of the league through the current week.")
+
+    board = league.find("{*}scoreboard")
+    if board is None:
+        raise YahooSyncError("Yahoo did not return a league scoreboard.")
+    week = int(board.findtext("{*}week", "0"))
+    if not start_week <= week <= current_week or (requested_week is not None and week != requested_week):
+        raise YahooSyncError("Yahoo returned a different matchup week than requested.")
+
+    categories = [
+        ScoringCategory(
+            stat_id=stat.findtext("{*}stat_id", ""),
+            name=stat.findtext("{*}name", ""),
+            label=stat.findtext("{*}display_name") or stat.findtext("{*}name", ""),
+            counts_toward_result=stat.findtext("{*}is_only_display_stat") != "1",
+            higher_is_better=stat.findtext("{*}sort_order") != "0",
         )
-        .join(FantasyLeague, FantasyLeague.id == FantasyManager.league_id)
-        .outerjoin(
-            FantasyRosterEntry,
-            (FantasyRosterEntry.manager_id == FantasyManager.id)
-            & (FantasyRosterEntry.roster_group == "core"),
-        )
-        .group_by(FantasyManager.id)
-        .order_by(FantasyManager.team_name)
-    ).all()
+        for stat in league.findall("{*}settings/{*}stat_categories/{*}stats/{*}stat")
+        if stat.findtext("{*}enabled") == "1" and stat.findtext("{*}stat_id")
+    ]
+
+    matchups = []
+    for match in board.findall("{*}matchups/{*}matchup"):
+        teams = []
+        for team in match.findall("{*}teams/{*}team"):
+            team_key = team.findtext("{*}team_key", "")
+            if not team_key:
+                raise YahooSyncError("Yahoo returned a matchup team without its team key.")
+            stats = {}
+            for stat in team.findall("{*}team_stats/{*}stats/{*}stat"):
+                stat_id, value = stat.findtext("{*}stat_id"), stat.findtext("{*}value")
+                if stat_id and value:
+                    stats[stat_id] = value
+            teams.append(MatchupTeam(
+                team_key=team_key,
+                team_name=team.findtext("{*}name") or team_key,
+                manager_name=team.findtext("{*}managers/{*}manager/{*}nickname") or None,
+                is_my_team=team.findtext("{*}is_owned_by_current_login") == "1",
+                points=team.findtext("{*}team_points/{*}total") or None,
+                stats=stats,
+            ))
+        if not teams:
+            continue
+
+        winners = {}
+        team_keys = {team.team_key for team in teams}
+        for stat in match.findall("{*}stat_winners/{*}stat_winner"):
+            stat_id, winner = stat.findtext("{*}stat_id"), stat.findtext("{*}winner_team_key")
+            if stat_id and winner in team_keys:
+                winners[stat_id] = winner
+            elif stat_id and stat.findtext("{*}is_tied") == "1":
+                winners[stat_id] = None
+
+        matchups.append(YahooMatchup(
+            status=match.findtext("{*}status", ""),
+            week_start=match.findtext("{*}week_start") or None,
+            week_end=match.findtext("{*}week_end") or None,
+            winner_team_key=match.findtext("{*}winner_team_key") or None,
+            is_tied=match.findtext("{*}is_tied") == "1",
+            category_winners=winners,
+            teams=teams,
+        ))
 
     return TeamComparisonResponse(
-        season=season,
-        teams=[
-            TeamComparison(
-                manager_id=row.id,
-                manager_name=row.manager_name,
-                team_name=row.team_name,
-                core_player_count=row.core_player_count,
-                **{
-                    field: weekly_totals.get(row.id, {}).get(field, 0.0)
-                    for field in STAT_COLUMNS
-                    if field != "nba_fantasy_points"
-                },
-                fantasy_points=weekly_totals.get(row.id, {}).get(
-                    "nba_fantasy_points", 0.0
-                ),
-                current_week_fantasy_points=weekly_points_by_manager.get(
-                    row.id, {}
-                ).get("current_week", 0.0),
-                previous_week_fantasy_points=weekly_points_by_manager.get(
-                    row.id, {}
-                ).get("previous_week", 0.0),
-            )
-            for row in managers
-        ],
+        league_name=league.findtext("{*}name") or league_key,
+        scoring_type=league.findtext("{*}scoring_type", ""),
+        start_week=start_week,
+        current_week=current_week,
+        week=week,
+        categories=categories,
+        matchups=matchups,
     )
+
+
+def get_team_comparisons(db: Session, week: int | None = None) -> TeamComparisonResponse:
+    client_id, _ = yahoo_credentials()
+    league_key, _ = read_authorization(client_id)
+    key = (client_id, league_key, week)
+    sync_revision = None
+    if week is None:
+        # The next request after Yahoo Sync should refresh the live scoreboard.
+        with db.begin():
+            sync_revision = db.scalar(
+                select(SyncRun.id)
+                .where(SyncRun.yahoo_status.in_(("succeeded", "unchanged")))
+                .order_by(SyncRun.id.desc())
+                .limit(1)
+            )
+
+    with _cache_lock:
+        now = monotonic()
+        cached = _scoreboard_cache.get(key)
+        if cached and cached.expires_at > now and cached.sync_revision == sync_revision:
+            return cached.scoreboard
+
+        scoreboard = fetch_scoreboard(db, league_key, week)
+        for stale_key in [
+            entry_key for entry_key, entry in _scoreboard_cache.items()
+            if entry.expires_at <= now
+        ]:
+            del _scoreboard_cache[stale_key]
+        _scoreboard_cache[key] = CachedScoreboard(
+            expires_at=monotonic() + CACHE_TTL_SECONDS,
+            sync_revision=sync_revision,
+            scoreboard=scoreboard,
+        )
+        return scoreboard
+
+
+def fetch_scoreboard(db: Session, expected_league: str, week: int | None) -> TeamComparisonResponse:
+    # Hold the database lock only through OAuth refresh and credential rotation.
+    with db.begin():
+        league_key, access_token = refresh_yahoo_access(db)
+    if league_key != expected_league:
+        raise YahooSyncError("Yahoo authorization changed. Reload Team Comparisons.")
+    path = f"league/{league_key};out=settings,scoreboard"
+    if week is not None:
+        path = f"league/{league_key};out=settings/scoreboard;week={week}"
+    try:
+        response = requests.get(
+            FANTASY_URL + path,
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=30,
+            allow_redirects=False,
+        )
+    except requests.RequestException:
+        raise YahooSyncError("Could not reach Yahoo's matchup scoreboard.") from None
+    if week is not None and response.status_code in (400, 404):
+        raise MatchupWeekUnavailable("Yahoo has no scoreboard for that week.")
+    if response.status_code != 200:
+        raise YahooSyncError(f"Yahoo's matchup scoreboard returned HTTP {response.status_code}.")
+    try:
+        return parse_scoreboard(response.content, league_key, week)
+    except (ElementTree.ParseError, ValueError):
+        raise YahooSyncError("Yahoo returned an unreadable matchup scoreboard.") from None

@@ -109,6 +109,18 @@ def request_tokens(credentials: tuple[str, str], grant_type: str, **grant) -> tu
         raise YahooSyncError("Could not complete Yahoo OAuth.") from None
 
 
+def refresh_yahoo_access(db: Session) -> tuple[str, str]:
+    lock_yahoo_authorization(db)
+    credentials = yahoo_credentials()
+    league_key, refresh_token = read_authorization(credentials[0])
+    access_token, rotated_token = request_tokens(
+        credentials, "refresh_token", refresh_token=refresh_token
+    )
+    if rotated_token and rotated_token != refresh_token:
+        store_authorization(credentials[0], league_key, rotated_token)
+    return league_key, access_token
+
+
 def parse_rosters(content: bytes, league_key: str) -> YahooRosterImport:
     league = ElementTree.fromstring(content).find("{*}league")
     if league is None or league.findtext("{*}league_key") != league_key:
@@ -160,14 +172,7 @@ def refresh_rosters_for_run(run_id: int) -> None:
     factory = get_session_factory()
     try:
         with factory.begin() as db:
-            lock_yahoo_authorization(db)
-            credentials = yahoo_credentials()
-            league_key, refresh_token = read_authorization(credentials[0])
-            access_token, rotated_token = request_tokens(
-                credentials, "refresh_token", refresh_token=refresh_token
-            )
-            if rotated_token and rotated_token != refresh_token:
-                store_authorization(credentials[0], league_key, rotated_token)
+            league_key, access_token = refresh_yahoo_access(db)
             snapshot = fetch_rosters(league_key, access_token)
             saved = save_snapshot(db, snapshot)
             run = db.get(SyncRun, run_id)

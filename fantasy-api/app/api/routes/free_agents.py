@@ -15,9 +15,13 @@ def read_free_agents(
     db: Session = Depends(get_db),
 ) -> FreeAgentListResponse:
     try:
-        return get_free_agents(limit, db)
+        result = get_free_agents(limit, db)
     except SQLAlchemyError as error:
         raise HTTPException(
             status_code=503,
             detail="The local stats database is unavailable. Please try again.",
         ) from error
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="Import the Yahoo league rosters to see unrostered players.")
+    return result

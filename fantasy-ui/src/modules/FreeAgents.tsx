@@ -32,7 +32,11 @@ export default function FreeAgents() {
   useEffect(() => {
     const refresh = () => setRefreshKey((current) => current + 1);
     window.addEventListener('basketbase:sync-complete', refresh);
-    return () => window.removeEventListener('basketbase:sync-complete', refresh);
+    window.addEventListener('basketbase:yahoo-rosters-synced', refresh);
+    return () => {
+      window.removeEventListener('basketbase:sync-complete', refresh);
+      window.removeEventListener('basketbase:yahoo-rosters-synced', refresh);
+    };
   }, []);
 
   useEffect(() => {
@@ -81,7 +85,7 @@ export default function FreeAgents() {
       <header className="player-stats-heading">
         <h1>Free agents</h1>
         <p>
-          Top 20 unrostered players · ranked by average fantasy points over the
+          Top 20 players unrostered in Yahoo · ranked by average fantasy points over the
           last 7 games
         </p>
       </header>

@@ -33,11 +33,25 @@ def normalize_player_name(name: str) -> str:
     )
 
 
-def to_game_log_rosters(db: Session, snapshot: YahooRosterSnapshot) -> YahooGameLogRosters:
+def nba_ids_by_name(db: Session) -> dict[str, set[int]]:
     ids_by_name: dict[str, set[int]] = defaultdict(set)
     for player_id, name in db.execute(select(Player.id, Player.full_name)):
         ids_by_name[normalize_player_name(name)].add(player_id)
+    return ids_by_name
 
+
+def rostered_nba_ids(db: Session, snapshot: YahooRosterSnapshot) -> set[int]:
+    ids_by_name = nba_ids_by_name(db)
+    return {
+        player_id
+        for team in snapshot.teams
+        for player in team.players
+        for player_id in ids_by_name.get(normalize_player_name(player.name), ())
+    }
+
+
+def to_game_log_rosters(db: Session, snapshot: YahooRosterSnapshot) -> YahooGameLogRosters:
+    ids_by_name = nba_ids_by_name(db)
     teams = []
     for team in snapshot.teams:
         players = []

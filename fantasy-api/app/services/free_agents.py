@@ -4,13 +4,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
-    FantasyManager,
-    FantasyRosterEntry,
     Game,
     Player,
     PlayerGameStats,
 )
 from app.schemas.free_agents import FreeAgentListResponse, FreeAgentPlayer
+from app.services.yahoo_game_logs import rostered_nba_ids
+from app.services.yahoo_rosters import get_latest_snapshot
 
 
 GAMES_TO_AVERAGE = 7
@@ -22,17 +22,12 @@ def current_nba_season(today: date | None = None) -> str:
     return f"{start_year}-{str(start_year + 1)[-2:]}"
 
 
-def get_free_agents(limit: int, db: Session) -> FreeAgentListResponse:
+def get_free_agents(limit: int, db: Session) -> FreeAgentListResponse | None:
     season = current_nba_season()
-    league_id = db.scalar(
-        select(FantasyManager.league_id)
-        .where(FantasyManager.is_primary.is_(True))
-        .limit(1)
-    )
-    if league_id is None:
-        return FreeAgentListResponse(
-            season=season, games_considered=GAMES_TO_AVERAGE, players=[]
-        )
+    snapshot = get_latest_snapshot(db)
+    if snapshot is None:
+        return None
+    rostered_ids = rostered_nba_ids(db, snapshot)
 
     ranked_games = (
         select(
@@ -60,16 +55,6 @@ def get_free_agents(limit: int, db: Session) -> FreeAgentListResponse:
         .having(func.count(ranked_games.c.fantasy_points) > 0)
     ).subquery()
 
-    rostered_in_league = (
-        select(FantasyRosterEntry.player_id)
-        .join(FantasyManager, FantasyManager.id == FantasyRosterEntry.manager_id)
-        .where(
-            FantasyManager.league_id == league_id,
-            FantasyRosterEntry.player_id == Player.id,
-        )
-        .exists()
-    )
-
     rows = db.execute(
         select(
             Player.id,
@@ -78,7 +63,7 @@ def get_free_agents(limit: int, db: Session) -> FreeAgentListResponse:
             recent_averages.c.games_played,
         )
         .join(recent_averages, recent_averages.c.player_id == Player.id)
-        .where(~rostered_in_league)
+        .where(Player.id.not_in(rostered_ids))
         .order_by(
             recent_averages.c.average_fantasy_points.desc(), Player.full_name.asc()
         )

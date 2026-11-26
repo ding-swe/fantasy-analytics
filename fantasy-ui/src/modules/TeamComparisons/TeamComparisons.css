@@ -125,7 +125,7 @@
   box-sizing: border-box;
   display: grid;
   min-width: 1040px;
-  grid-template-columns: var(--team-columns);
+  grid-template-columns: var(--yahoo-team-columns, var(--team-columns));
   align-items: center;
   padding: 12px 14px 12px 32px;
   text-align: center;
@@ -240,4 +240,14 @@
   color: #777;
   font-size: 0.82rem;
   text-align: center;
+}
+
+
+.team-comparisons-attribution {
+  margin-top: 14px;
+  font-size: 0.8rem;
+}
+
+.team-comparisons-attribution a {
+  text-decoration: underline;
 }

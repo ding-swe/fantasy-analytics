@@ -1,28 +1,40 @@
+from datetime import date
+
 from pydantic import BaseModel
 
 
-class TeamComparison(BaseModel):
-    manager_id: int
-    manager_name: str
+class ScoringCategory(BaseModel):
+    stat_id: str
+    name: str
+    label: str
+    counts_toward_result: bool
+    higher_is_better: bool
+
+
+class MatchupTeam(BaseModel):
+    team_key: str
     team_name: str
-    core_player_count: int
-    minutes: float
-    field_goals_made: float
-    field_goals_attempted: float
-    free_throws_made: float
-    free_throws_attempted: float
-    points: float
-    rebounds: float
-    assists: float
-    steals: float
-    blocks: float
-    turnovers: float
-    three_pointers_made: float
-    fantasy_points: float
-    current_week_fantasy_points: float
-    previous_week_fantasy_points: float
+    manager_name: str | None
+    is_my_team: bool
+    points: str | None
+    stats: dict[str, str]
+
+
+class YahooMatchup(BaseModel):
+    status: str
+    week_start: date | None
+    week_end: date | None
+    winner_team_key: str | None
+    is_tied: bool
+    category_winners: dict[str, str | None]
+    teams: list[MatchupTeam]
 
 
 class TeamComparisonResponse(BaseModel):
-    season: str
-    teams: list[TeamComparison]
+    league_name: str
+    scoring_type: str
+    start_week: int
+    current_week: int
+    week: int
+    categories: list[ScoringCategory]
+    matchups: list[YahooMatchup]

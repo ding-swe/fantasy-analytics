@@ -121,13 +121,18 @@ function RosterGameLogs({ team }: { team: YahooGameLogTeam }) {
   return (
     <>
       {ids.length > 0 && (
-        <div className="weekly-summary-cards">
-          <WeeklyFantasyCard current={totals.current} previous={totals.previous} loading={!loaded} />
-          <WeeklyCategoryCard
-            increase={loaded ? findBiggestWeeklyCategoryIncrease(weekly) : null}
-            loading={!loaded}
-          />
-        </div>
+        <section aria-label="Current roster trends">
+          <p className="player-stats-section-description">
+            Weekly trends use NBA per-game averages for the current roster.
+          </p>
+          <div className="weekly-summary-cards">
+            <WeeklyFantasyCard current={totals.current} previous={totals.previous} loading={!loaded} />
+            <WeeklyCategoryCard
+              increase={loaded ? findBiggestWeeklyCategoryIncrease(weekly) : null}
+              loading={!loaded}
+            />
+          </div>
+        </section>
       )}
       <section aria-labelledby="game-log-roster-heading">
         <h2 className="player-stats-section-heading" id="game-log-roster-heading">Roster</h2>

@@ -15,8 +15,8 @@ export default function WeeklyFantasyCard({
     Math.round(value).toLocaleString('en-US');
 
   return (
-    <article className="weekly-fantasy-card" aria-label="Fantasy points this week">
-      <span className="weekly-fantasy-card-label">Fantasy points this week</span>
+    <article className="weekly-fantasy-card" aria-label="Roster fantasy average this week">
+      <span className="weekly-fantasy-card-label">Roster fantasy average this week</span>
       <div className="weekly-fantasy-card-total">
         <strong>{loading ? '…' : formatTotal(current)}</strong>
         {!loading && (
@@ -24,7 +24,7 @@ export default function WeeklyFantasyCard({
             current={current}
             previous={previous}
             minimumChange={0}
-            label="Fantasy points this week"
+            label="Roster fantasy average this week"
           />
         )}
       </div>

@@ -1,21 +1,17 @@
 import React from 'react';
-import { TeamComparison } from '../../services/teamComparisonsApi';
-import StatTrend from '../StatTrend';
+import { ComparisonColumn, ComparisonTeam } from '../../services/teamComparisonsApi';
 
 export type TeamStatTone = 'strength' | 'best' | 'worst';
 export type TeamStatTones = Partial<Record<string, TeamStatTone>>;
 
-export default function TeamComparisonRow({
-  team,
-  rank,
-  tones
-}: {
-  team: TeamComparison;
+export default function TeamComparisonRow({ team, rank, columns, tones }: {
+  team: ComparisonTeam;
   rank: number;
+  columns: ComparisonColumn[];
   tones: TeamStatTones;
 }) {
-  const statClass = (key: string) =>
-    tones[key] ? `team-comparison-value ${tones[key]}` : 'team-comparison-value';
+  const detail = [team.managerName, team.opponentName && 'vs. ' + team.opponentName]
+    .filter(Boolean).join(' · ');
 
   return (
     <div className="team-comparison-row" role="row">
@@ -23,34 +19,16 @@ export default function TeamComparisonRow({
         <span className="team-comparison-rank">{rank}</span>
         <span>
           <strong>{team.teamName}</strong>
-          <small>
-            {team.managerName} · {team.corePlayerCount} core players
-          </small>
+          {detail && <small>{detail}</small>}
         </span>
       </div>
-      <span className={statClass('minutes')} role="cell">{team.minutes.toFixed(1)}</span>
-      <span className={statClass('fieldGoalsMade')} role="cell">
-        {team.fieldGoalsMade.toFixed(1)} / {team.fieldGoalsAttempted.toFixed(1)}
-      </span>
-      <span className={statClass('freeThrowsMade')} role="cell">
-        {team.freeThrowsMade.toFixed(1)} / {team.freeThrowsAttempted.toFixed(1)}
-      </span>
-      <span className={statClass('points')} role="cell">{team.points.toFixed(1)}</span>
-      <span className={statClass('rebounds')} role="cell">{team.rebounds.toFixed(1)}</span>
-      <span className={statClass('assists')} role="cell">{team.assists.toFixed(1)}</span>
-      <span className={statClass('steals')} role="cell">{team.steals.toFixed(1)}</span>
-      <span className={statClass('blocks')} role="cell">{team.blocks.toFixed(1)}</span>
-      <span className={statClass('turnovers')} role="cell">{team.turnovers.toFixed(1)}</span>
-      <span className={statClass('threePointersMade')} role="cell">{team.threePointersMade.toFixed(1)}</span>
-      <strong className={statClass('fantasyPoints')} role="cell">
-        {team.fantasyPoints.toFixed(1)}
-        <StatTrend
-          current={team.currentWeekFantasyPoints}
-          previous={team.previousWeekFantasyPoints}
-          label="Fantasy points"
-          minimumChange={0}
-        />
-      </strong>
+      {columns.map(({ key }) => {
+        const className = 'team-comparison-value' + (tones[key] ? ' ' + tones[key] : '');
+        const value = team.values[key]?.display ?? '—';
+        return key === 'result'
+          ? <strong key={key} className={className} role="cell">{value}</strong>
+          : <span key={key} className={className} role="cell">{value}</span>;
+      })}
     </div>
   );
 }
