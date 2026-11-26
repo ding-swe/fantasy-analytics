@@ -48,7 +48,9 @@ def next_sync_window(db: Session, season: str, today: date | None = None):
     return None, today
 
 
-def create_sync_run(db: Session, season: str, date_from: date | None, date_to: date) -> SyncRun:
+def create_sync_run(
+    db: Session, season: str, date_from: date | None, date_to: date, *, include_yahoo: bool = False
+) -> SyncRun:
     sync_run = SyncRun(
         status="running",
         season=season,
@@ -56,6 +58,7 @@ def create_sync_run(db: Session, season: str, date_from: date | None, date_to: d
         date_to=date_to,
         started_at=datetime.now(timezone.utc),
         records_processed=0,
+        yahoo_status="running" if include_yahoo else None,
     )
     db.add(sync_run)
     db.commit()

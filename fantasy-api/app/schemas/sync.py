@@ -14,3 +14,5 @@ class SyncRunStatus(BaseModel):
     completed_through_date: date | None
     records_processed: int
     error_message: str | None
+    yahoo_status: str | None = None
+    yahoo_error_message: str | None = None

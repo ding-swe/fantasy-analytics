@@ -26,4 +26,4 @@ From `fantasy-api`, initialize PostgreSQL and run the importer with your Yahoo l
 .\.venv\Scripts\python.exe -m scripts.sync_yahoo_rosters YOUR_LEAGUE_KEY
 ```
 
-Set `YAHOO_CLIENT_ID` and `YAHOO_CLIENT_SECRET` in your local `.env`. Approve access in the browser and enter the one-time code in the terminal. Reload the Yahoo Teams tab after the import. A successful change saves one complete league snapshot with one row per team. Identical roster membership reuses the existing snapshot.
+Set `YAHOO_CLIENT_ID` and `YAHOO_CLIENT_SECRET` in your local `.env`. Approve access in the browser and enter the one-time code in the terminal. Reload the Yahoo Teams tab after the import. A successful change saves one complete league snapshot with one row per team. Identical roster membership reuses the existing snapshot. The importer also saves Yahoo authorization in the system credential store. After this one-time authorization, the app Sync button refreshes Yahoo rosters and NBA game logs. Re-run the importer if Yahoo requires you to authorize again.

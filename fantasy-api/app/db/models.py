@@ -83,6 +83,8 @@ class SyncRun(Base):
     completed_through_date: Mapped[date | None] = mapped_column(Date)
     records_processed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_message: Mapped[str | None] = mapped_column(String(2000))
+    yahoo_status: Mapped[str | None] = mapped_column(String(24))
+    yahoo_error_message: Mapped[str | None] = mapped_column(String(2000))
 
 
 class FantasyLeague(Base):

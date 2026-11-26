@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -9,6 +9,7 @@ from app.db.models import SyncRun
 from app.schemas.sync import SyncRunStatus
 from app.services.free_agents import current_nba_season
 from app.services.nba_sync import create_sync_run, next_sync_window, run_sync_run
+from app.services.yahoo_sync import refresh_rosters_for_run
 
 router = APIRouter(prefix="/api/sync", tags=["data sync"])
 
@@ -25,7 +26,16 @@ def to_status(run: SyncRun) -> SyncRunStatus:
         completed_through_date=run.completed_through_date,
         records_processed=run.records_processed,
         error_message=run.error_message,
+        yahoo_status=run.yahoo_status,
+        yahoo_error_message=run.yahoo_error_message,
     )
+
+
+def run_app_sync(run_id: int, season: str, date_from: date | None, date_to: date) -> None:
+    try:
+        refresh_rosters_for_run(run_id)
+    finally:
+        run_sync_run(run_id, season, date_from, date_to)
 
 
 @router.post("", response_model=SyncRunStatus, status_code=status.HTTP_202_ACCEPTED)
@@ -33,6 +43,7 @@ def start_sync(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> SyncRunStatus:
+    db.execute(text("SELECT pg_advisory_xact_lock(hashtextextended('basketbase:app-sync', 0))"))
     now = datetime.now(timezone.utc)
     active_run = db.scalar(
         select(SyncRun)
@@ -49,12 +60,15 @@ def start_sync(
         active_run.status = "failed"
         active_run.completed_at = now
         active_run.error_message = "Marked failed because the sync exceeded three hours."
-        db.commit()
+        if active_run.yahoo_status == "running":
+            active_run.yahoo_status = "failed"
+            active_run.yahoo_error_message = "The previous sync timed out."
+        db.flush()
 
     season = current_nba_season()
     date_from, date_to = next_sync_window(db, season)
-    run = create_sync_run(db, season, date_from, date_to)
-    background_tasks.add_task(run_sync_run, run.id, season, date_from, date_to)
+    run = create_sync_run(db, season, date_from, date_to, include_yahoo=True)
+    background_tasks.add_task(run_app_sync, run.id, season, date_from, date_to)
     return to_status(run)
 
 

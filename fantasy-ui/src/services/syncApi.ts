@@ -11,12 +11,14 @@ export interface SyncRunStatus {
   completed_through_date: string | null;
   records_processed: number;
   error_message: string | null;
+  yahoo_status: 'running' | 'succeeded' | 'unchanged' | 'needs_authorization' | 'failed' | null;
+  yahoo_error_message: string | null;
 }
 
 async function readResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(body?.detail || 'Could not sync NBA game data.');
+    throw new Error(body?.detail || 'Could not sync NBA data and Yahoo rosters.');
   }
   return response.json();
 }

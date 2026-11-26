@@ -25,16 +25,27 @@ export default function SyncButton() {
     };
   }, []);
 
+  const runningSyncId = sync?.status === 'running' ? sync.id : null;
+
   useEffect(() => {
-    if (!sync || sync.status !== 'running') return;
+    if (runningSyncId === null) return;
+    let yahooNotified = false;
     let cancelled = false;
     let timeout: ReturnType<typeof setTimeout>;
 
     const poll = async () => {
       try {
-        const latest = await fetchSyncStatus(sync.id);
+        const latest = await fetchSyncStatus(runningSyncId);
         if (cancelled) return;
+        setRequestError(null);
         setSync(latest);
+        if (
+          !yahooNotified &&
+          (latest.yahoo_status === 'succeeded' || latest.yahoo_status === 'unchanged')
+        ) {
+          yahooNotified = true;
+          window.dispatchEvent(new Event('basketbase:yahoo-rosters-synced'));
+        }
         if (latest.status === 'succeeded') {
           window.dispatchEvent(new Event('basketbase:sync-complete'));
         } else if (latest.status === 'running') {
@@ -53,7 +64,7 @@ export default function SyncButton() {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [sync?.id, sync?.status]);
+  }, [runningSyncId]);
 
   const handleClick = async () => {
     setRequestError(null);
@@ -69,16 +80,25 @@ export default function SyncButton() {
   };
 
   const running = starting || sync?.status === 'running';
-  const complete =
-    !running && requestError === null && sync?.status === 'succeeded';
-  const failed = !running && (sync?.status === 'failed' || requestError !== null);
-  const label = running
-    ? 'Syncing'
-    : complete
-    ? 'Sync Complete'
-    : failed
-    ? 'Sync Failed'
-    : 'Sync';
+  const yahooFailed = sync?.yahoo_status === 'failed' || sync?.yahoo_status === 'needs_authorization';
+  const yahooSynced = sync?.yahoo_status === 'succeeded' || sync?.yahoo_status === 'unchanged';
+  const nbaSynced = sync?.status === 'succeeded';
+  const complete = !running && !requestError && nbaSynced && !yahooFailed;
+  const failed = !running && Boolean(requestError || sync?.status === 'failed' || yahooFailed);
+  let label = 'Sync';
+  if (running) label = yahooSynced ? 'Yahoo synced · NBA syncing' : 'Syncing';
+  else if (complete) label = 'Sync Complete';
+  else if (requestError) label = 'Sync Failed';
+  else if (sync?.yahoo_status === 'needs_authorization') label = 'Yahoo sign-in needed';
+  else if (nbaSynced && yahooFailed) label = 'NBA synced · Yahoo failed';
+  else if (yahooSynced && sync?.status === 'failed') label = 'Yahoo synced · NBA failed';
+  else if (failed) label = 'Sync Failed';
+
+  const details = [
+    requestError,
+    sync?.error_message ? 'NBA: ' + sync.error_message : null,
+    sync?.yahoo_error_message ? 'Yahoo: ' + sync.yahoo_error_message : null
+  ].filter(Boolean).join(' ');
 
   return (
     <button
@@ -88,7 +108,7 @@ export default function SyncButton() {
       }${failed ? ' failed' : ''}`}
       onClick={handleClick}
       disabled={running}
-      title={requestError || (sync?.error_message ?? 'Sync NBA data to today')}
+      title={details || 'Sync Yahoo rosters and NBA game data'}
       aria-live="polite"
     >
       {running && <span className="sync-spinner" aria-hidden="true" />}

@@ -20,6 +20,12 @@ export default function YahooTeams() {
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
+    const refreshRosters = () => setRefresh((value) => value + 1);
+    window.addEventListener('basketbase:yahoo-rosters-synced', refreshRosters);
+    return () => window.removeEventListener('basketbase:yahoo-rosters-synced', refreshRosters);
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError('');
