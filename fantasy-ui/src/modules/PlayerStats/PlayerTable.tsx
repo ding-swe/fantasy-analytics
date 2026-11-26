@@ -5,7 +5,8 @@ import PlayerGameLog, {
 } from './PlayerGameLog';
 
 export interface PlayerTableItem {
-  playerId: number;
+  playerId: number | null;
+  rosterKey?: string;
   name: string;
 }
 
@@ -85,11 +86,11 @@ export default function PlayerTable({
       const leftValue =
         sort.key === 'name'
           ? left.player.name.toLocaleLowerCase()
-          : averagesByPlayer[left.player.playerId]?.[sort.key] ?? null;
+          : left.player.playerId === null ? null : averagesByPlayer[left.player.playerId]?.[sort.key] ?? null;
       const rightValue =
         sort.key === 'name'
           ? right.player.name.toLocaleLowerCase()
-          : averagesByPlayer[right.player.playerId]?.[sort.key] ?? null;
+          : right.player.playerId === null ? null : averagesByPlayer[right.player.playerId]?.[sort.key] ?? null;
 
       if (leftValue === null && rightValue === null) {
         return left.originalIndex - right.originalIndex;
@@ -129,9 +130,14 @@ export default function PlayerTable({
           );
         })}
       </div>
-      {sortedPlayers.map(({ player }) => (
+      {sortedPlayers.map(({ player }) => player.playerId === null ? (
+        <div className="player-stats-player player-stats-unmatched" key={player.rosterKey ?? player.name}>
+          <strong className="player-stats-player-name">{player.name}</strong>
+          <span>NBA game logs unavailable</span>
+        </div>
+      ) : (
         <PlayerGameLog
-          key={player.playerId}
+          key={player.rosterKey ?? player.playerId}
           playerId={player.playerId}
           name={player.name}
           onAveragesChange={onAveragesChange}

@@ -3,222 +3,145 @@ import {
   PlayerAverageStats,
   PlayerWeeklySummary
 } from './PlayerGameLog';
-import PlayerTable from './PlayerTable';
+import PlayerTable, { PlayerTableItem } from './PlayerTable';
 import WeeklyCategoryCard, { WeeklyCategoryIncrease } from './WeeklyCategoryCard';
 import WeeklyFantasyCard from './WeeklyFantasyCard';
-import {
-  CurrentRoster,
-  fetchManagerRoster,
-  fetchRosterManagers,
-  RosterManager
-} from '../../services/rosterApi';
+import { fetchYahooGameLogRosters, YahooGameLogTeam } from '../../services/yahooGameLogApi';
 import './PlayerStats.css';
 
+const TEAM_PREFERENCE = 'basketbase:game-log-team';
+
 export default function PlayerStats() {
-  const [managers, setManagers] = useState<RosterManager[]>([]);
-  const [selectedManagerId, setSelectedManagerId] = useState<number | null>(null);
-  const [roster, setRoster] = useState<CurrentRoster | null>(null);
-  const [rosterError, setRosterError] = useState<string | null>(null);
-  const [rosterLoading, setRosterLoading] = useState(true);
-  const [managersLoading, setManagersLoading] = useState(true);
-  const [averagesByPlayer, setAveragesByPlayer] = useState<
-    Record<number, PlayerAverageStats>
-  >({});
-  const [weeklyFantasyByPlayer, setWeeklyFantasyByPlayer] = useState<
-    Record<number, PlayerWeeklySummary>
-  >({});
+  const [teams, setTeams] = useState<YahooGameLogTeam[]>([]);
+  const [selectedTeamKey, setSelectedTeamKey] = useState(
+    () => window.localStorage.getItem(TEAM_PREFERENCE) || ''
+  );
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-
-    fetchRosterManagers()
-      .then((data) => {
-        if (!cancelled) {
-          setManagers(data.managers);
-          const defaultManagerId =
-            data.defaultManagerId ?? data.managers[0]?.managerId ?? null;
-          setSelectedManagerId(defaultManagerId);
-          setManagersLoading(false);
-          if (defaultManagerId === null) {
-            setRosterError('No fantasy managers are configured yet.');
-            setRosterLoading(false);
-          }
-        }
-      })
-      .catch((error: Error) => {
-        if (!cancelled) {
-          setRosterError(error.message);
-          setManagersLoading(false);
-          setRosterLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    const refreshRosters = () => setRefresh((previous) => previous + 1);
+    window.addEventListener('basketbase:yahoo-rosters-synced', refreshRosters);
+    return () => window.removeEventListener('basketbase:yahoo-rosters-synced', refreshRosters);
   }, []);
 
   useEffect(() => {
-    if (selectedManagerId === null) return;
-
-    let cancelled = false;
-    setRosterLoading(true);
-    setRosterError(null);
-    setRoster(null);
-    setAveragesByPlayer({});
-    setWeeklyFantasyByPlayer({});
-
-    fetchManagerRoster(selectedManagerId)
+    const controller = new AbortController();
+    setError('');
+    fetchYahooGameLogRosters(controller.signal)
       .then((data) => {
-        if (!cancelled) {
-          setRoster(data);
-          setRosterLoading(false);
-        }
+        if (controller.signal.aborted) return;
+        setTeams(data.teams);
+        setSelectedTeamKey((previous) =>
+          data.teams.some((team) => team.team_key === previous)
+            ? previous
+            : data.default_team_key || data.teams[0]?.team_key || ''
+        );
       })
-      .catch((error: Error) => {
-        if (!cancelled) {
-          setRosterError(error.message);
-          setRosterLoading(false);
-        }
+      .catch((failure: Error) => {
+        if (!controller.signal.aborted) setError(failure.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
+    return () => controller.abort();
+  }, [refresh]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedManagerId]);
-
-  const handleAveragesChange = useCallback(
-    (
-      playerId: number,
-      averages: PlayerAverageStats,
-      weeklySummary: PlayerWeeklySummary
-    ) => {
-      setAveragesByPlayer((previous) => ({
-        ...previous,
-        [playerId]: averages
-      }));
-      setWeeklyFantasyByPlayer((previous) => ({
-        ...previous,
-        [playerId]: weeklySummary
-      }));
-    },
-    []
-  );
+  const team = teams.find((entry) => entry.team_key === selectedTeamKey);
 
   return (
     <main className="player-stats-page">
       <header className="player-stats-heading">
         <h1>Player game logs</h1>
-        <p>
-          {roster ? `${roster.teamName} · ` : ''}Most recent games · current season
-        </p>
+        <p>{team ? team.team_name + ' · ' : ''}Most recent games · current season</p>
         <div className="player-stats-manager-selector">
-          <label htmlFor="manager-select">Manager</label>
+          <label htmlFor="roster-team-select">Team</label>
           <div className="player-stats-manager-select-wrap">
             <select
-              id="manager-select"
-              value={selectedManagerId ?? ''}
-              disabled={managersLoading || managers.length === 0}
-              onChange={(event) => setSelectedManagerId(Number(event.target.value))}
+              id="roster-team-select"
+              value={selectedTeamKey}
+              disabled={loading || teams.length === 0}
+              onChange={(event) => {
+                const teamKey = event.target.value;
+                window.localStorage.setItem(TEAM_PREFERENCE, teamKey);
+                setSelectedTeamKey(teamKey);
+              }}
             >
-              {managersLoading && <option value="">Loading managers…</option>}
-              {managers.map((manager) => (
-                <option key={manager.managerId} value={manager.managerId}>
-                  {manager.managerName}
-                </option>
+              {!team && <option value="">{loading ? 'Loading teams…' : 'No Yahoo teams'}</option>}
+              {teams.map((entry) => (
+                <option key={entry.team_key} value={entry.team_key}>{entry.team_name}</option>
               ))}
             </select>
           </div>
         </div>
       </header>
 
-      {roster && (() => {
-        const rosterPlayers = [
-          ...roster.corePlayers,
-          ...roster.streamSlotCandidates
-        ];
-        const uniquePlayerIds = Array.from(new Set(rosterPlayers.map((player) => player.playerId)));
-        const loaded = uniquePlayerIds.every((playerId) =>
-          Object.prototype.hasOwnProperty.call(weeklyFantasyByPlayer, playerId)
-        );
-        const totals = uniquePlayerIds.reduce(
-          (sum, playerId) => {
-            const weekly = weeklyFantasyByPlayer[playerId];
-            if (weekly) {
-              sum.current += weekly.fantasyPoints.current;
-              sum.previous += weekly.fantasyPoints.previous;
-            }
-            return sum;
-          },
-          { current: 0, previous: 0 }
-        );
-        const categoryIncrease = loaded
-          ? findBiggestWeeklyCategoryIncrease(
-              uniquePlayerIds
-                .map((playerId) => weeklyFantasyByPlayer[playerId])
-                .filter((weekly): weekly is PlayerWeeklySummary => Boolean(weekly))
-            )
-          : null;
-
-        return (
-          <div className="weekly-summary-cards">
-            <WeeklyFantasyCard
-              current={totals.current}
-              previous={totals.previous}
-              loading={!loaded || rosterLoading}
-            />
-            <WeeklyCategoryCard increase={categoryIncrease} loading={!loaded || rosterLoading} />
-          </div>
-        );
-      })()}
-
-      {rosterLoading && <p className="player-stats-message">Loading roster…</p>}
-      {rosterError && (
-        <p className="player-stats-message error" role="alert">
-          {rosterError}
-        </p>
-      )}
-      {roster && (
-        <>
-          <section aria-labelledby="core-roster-heading">
-            <h2 className="player-stats-section-heading" id="core-roster-heading">
-              Roster
-            </h2>
-            <PlayerTable
-              players={roster.corePlayers}
-              averagesByPlayer={averagesByPlayer}
-              onAveragesChange={handleAveragesChange}
-            />
-          </section>
-
-          <section aria-labelledby="stream-slot-heading">
-            <h2 className="player-stats-section-heading" id="stream-slot-heading">
-              Stream slot candidates
-            </h2>
-            <p className="player-stats-section-description">
-              {roster.streamSlotCandidates.length > 0
-                ? `Candidates for ${roster.streamingSlots} streaming spot${
-                    roster.streamingSlots === 1 ? '' : 's'
-                  }.`
-                : `${roster.streamingSlots} open streaming spot${
-                    roster.streamingSlots === 1 ? '' : 's'
-                  }.`}
-            </p>
-            {roster.streamSlotCandidates.length > 0 ? (
-              <PlayerTable
-                players={roster.streamSlotCandidates}
-                averagesByPlayer={averagesByPlayer}
-                onAveragesChange={handleAveragesChange}
-              />
-            ) : (
-              <div className="player-stats-open-stream-slot">
-                No player assigned yet
-              </div>
-            )}
-          </section>
-        </>
-      )}
+      {loading && <p className="player-stats-message" role="status">Loading Yahoo rosters…</p>}
+      {error && <p className="player-stats-message error" role="alert">{error}</p>}
+      {team && <RosterGameLogs key={team.team_key} team={team} />}
     </main>
+  );
+}
+
+function RosterGameLogs({ team }: { team: YahooGameLogTeam }) {
+  const [averagesByPlayer, setAveragesByPlayer] = useState<
+    Record<number, PlayerAverageStats>
+  >({});
+  const [weeklyByPlayer, setWeeklyByPlayer] = useState<
+    Record<number, PlayerWeeklySummary>
+  >({});
+
+  const handleAveragesChange = useCallback(
+    (playerId: number, averages: PlayerAverageStats, weekly: PlayerWeeklySummary) => {
+      setAveragesByPlayer((previous) => ({ ...previous, [playerId]: averages }));
+      setWeeklyByPlayer((previous) => ({ ...previous, [playerId]: weekly }));
+    },
+    []
+  );
+
+  const players: PlayerTableItem[] = team.players.map((player) => ({
+    playerId: player.nba_player_id,
+    rosterKey: player.player_key,
+    name: player.name
+  }));
+  const ids = Array.from(new Set(players.flatMap((player) =>
+    player.playerId === null ? [] : [player.playerId]
+  )));
+  const weekly = ids.map((id) => weeklyByPlayer[id]).filter(Boolean);
+  const loaded = weekly.length === ids.length;
+  const totals = weekly.reduce(
+    (sum, entry) => ({
+      current: sum.current + entry.fantasyPoints.current,
+      previous: sum.previous + entry.fantasyPoints.previous
+    }),
+    { current: 0, previous: 0 }
+  );
+
+  return (
+    <>
+      {ids.length > 0 && (
+        <div className="weekly-summary-cards">
+          <WeeklyFantasyCard current={totals.current} previous={totals.previous} loading={!loaded} />
+          <WeeklyCategoryCard
+            increase={loaded ? findBiggestWeeklyCategoryIncrease(weekly) : null}
+            loading={!loaded}
+          />
+        </div>
+      )}
+      <section aria-labelledby="game-log-roster-heading">
+        <h2 className="player-stats-section-heading" id="game-log-roster-heading">Roster</h2>
+        {players.length ? (
+          <PlayerTable
+            players={players}
+            averagesByPlayer={averagesByPlayer}
+            onAveragesChange={handleAveragesChange}
+          />
+        ) : (
+          <p className="player-stats-message">No rostered players.</p>
+        )}
+      </section>
+    </>
   );
 }
 

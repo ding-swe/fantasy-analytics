@@ -3,6 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.services.yahoo_game_logs import YahooGameLogRosters, to_game_log_rosters
 from app.services.yahoo_rosters import YahooRosterSnapshot, get_latest_snapshot
 
 
@@ -24,3 +25,15 @@ def read_yahoo_teams(db: Session = Depends(get_db)) -> YahooRosterSnapshot:
             detail="Import the Yahoo league rosters, then reload this page.",
         )
     return snapshot
+
+
+@router.get("/game-log-rosters")
+def read_yahoo_game_log_rosters(db: Session = Depends(get_db)) -> YahooGameLogRosters:
+    snapshot = read_yahoo_teams(db)
+    try:
+        return to_game_log_rosters(db, snapshot)
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=503,
+            detail="Could not match Yahoo roster players to the local NBA database.",
+        ) from None
