@@ -30,6 +30,7 @@ ROSTER_NAME_ALIASES = {
     "Nikola Jokic": "Nikola Jokić",
     "Kon Knupple": "Kon Knueppel",
     "Steph Curry": "Stephen Curry",
+    "Jimmy Butler": "Jimmy Butler III",
     "Colin Murray-Boyles": "Collin Murray-Boyles",
     "Adeemara": "Aday Mara",
     "Nikhil Alexander-Walker": "Nickeil Alexander-Walker",
@@ -52,7 +53,7 @@ ROSTER_NAME_ALIASES = {
 # local current-season import yet. Keep his known NBA ID so the roster is complete.
 PLAYER_ID_OVERRIDES = {
     "Brandon Ingram": 1627742,
-    "Jimmy Butler": 202710,
+    "Jimmy Butler III": 202710,
 }
 
 ROSTERS = [
@@ -296,7 +297,8 @@ def resolve_players(session: Session) -> dict[str, Player]:
     players_by_name: dict[str, list[Player]] = defaultdict(list)
     players_by_id = {player.id: player for player in players}
     for player in players:
-        players_by_name[normalize_player_name(player.full_name)].append(player)
+        canonical_name = ROSTER_NAME_ALIASES.get(player.full_name, player.full_name)
+        players_by_name[normalize_player_name(canonical_name)].append(player)
 
     resolved: dict[str, Player] = {}
     requested_names = {
