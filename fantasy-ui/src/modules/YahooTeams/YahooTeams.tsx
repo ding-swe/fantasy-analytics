@@ -9,9 +9,19 @@ interface YahooRosterSnapshot {
   teams: {
     team_name: string;
     team_key: string;
-    players: { player_key: string; name: string }[];
+    lineup_date: string | null;
+    players: {
+      player_key: string;
+      name: string;
+      lineup_slot: string | null;
+      injury_status: string | null;
+      added_at: string | null;
+    }[];
   }[];
 }
+
+const RECENT_ADD_MS = 7 * 24 * 60 * 60 * 1000;
+const shortDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
 
 export default function YahooTeams() {
   const [snapshot, setSnapshot] = useState<YahooRosterSnapshot | null>(null);
@@ -76,12 +86,49 @@ export default function YahooTeams() {
         <div className="yahoo-team-grid">
           {snapshot.teams.map((team) => (
             <section className="yahoo-team-card" key={team.team_key}>
-              <h2>{team.team_name}</h2>
+              <div className="yahoo-team-card-heading">
+                <h2>{team.team_name}</h2>
+                {team.lineup_date && (
+                  <time dateTime={team.lineup_date} title="Yahoo lineup date">
+                    {shortDate.format(new Date(team.lineup_date + 'T12:00:00'))}
+                  </time>
+                )}
+              </div>
               {team.players.length ? (
                 <ul aria-label={team.team_name + ' roster'}>
-                  {team.players.map((player) => (
-                    <li key={player.player_key}>{player.name}</li>
-                  ))}
+                  {team.players.map((player) => {
+                    const added = player.added_at ? new Date(player.added_at) : null;
+                    const age = added ? Date.now() - added.getTime() : -1;
+                    const recentLabel = added && age >= 0 && age < RECENT_ADD_MS
+                      ? 'Added ' + shortDate.format(added)
+                      : null;
+                    return (
+                      <li key={player.player_key}>
+                        <span className="yahoo-roster-player">
+                          {player.name}
+                          {player.injury_status && (
+                            <span
+                              className="yahoo-roster-dot yahoo-roster-dot-injury"
+                              role="img"
+                              aria-label={'Yahoo injury status: ' + player.injury_status}
+                              title={player.injury_status}
+                            />
+                          )}
+                          {recentLabel && (
+                            <span
+                              className="yahoo-roster-dot yahoo-roster-dot-add"
+                              role="img"
+                              aria-label={recentLabel}
+                              title={recentLabel}
+                            />
+                          )}
+                        </span>
+                        <span className="yahoo-roster-slot" title="Yahoo lineup slot">
+                          {player.lineup_slot ?? '—'}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p>No rostered players.</p>

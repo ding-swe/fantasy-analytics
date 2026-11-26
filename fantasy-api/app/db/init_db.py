@@ -26,6 +26,10 @@ def main() -> None:
         connection.execute(text("ALTER TABLE sync_runs ADD COLUMN IF NOT EXISTS date_to DATE"))
         connection.execute(text("ALTER TABLE sync_runs ADD COLUMN IF NOT EXISTS yahoo_status VARCHAR(24)"))
         connection.execute(text("ALTER TABLE sync_runs ADD COLUMN IF NOT EXISTS yahoo_error_message VARCHAR(2000)"))
+        connection.execute(text("ALTER TABLE yahoo_team_roster_snapshots ADD COLUMN IF NOT EXISTS lineup_date DATE"))
+        connection.execute(text(
+            "ALTER TABLE yahoo_team_roster_snapshots ADD COLUMN IF NOT EXISTS details_fetched_at TIMESTAMPTZ"
+        ))
         connection.execute(
             text(
                 "CREATE INDEX IF NOT EXISTS ix_fantasy_roster_entries_player_id "

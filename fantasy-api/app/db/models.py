@@ -149,4 +149,6 @@ class YahooTeamRosterSnapshot(Base):
     league_name: Mapped[str] = mapped_column(Text, nullable=False)
     team_name: Mapped[str] = mapped_column(Text, nullable=False)
     captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    players: Mapped[list[dict[str, str]]] = mapped_column(JSONB, nullable=False)
+    lineup_date: Mapped[date | None] = mapped_column(Date)
+    details_fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    players: Mapped[list[dict[str, str | None]]] = mapped_column(JSONB, nullable=False)

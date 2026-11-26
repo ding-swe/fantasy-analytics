@@ -55,18 +55,58 @@
 }
 
 .yahoo-team-card h2 {
-  margin: 0 0 5px;
+  margin: 0;
   font-size: 0.94rem;
   color: #452078;
   overflow-wrap: anywhere;
 }
 
 .yahoo-team-card li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px;
   padding: 2px 0;
   border-top: 1px solid #f0edf6;
   font-size: 0.78rem;
   line-height: 1.15;
   overflow-wrap: anywhere;
+}
+
+.yahoo-team-card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 5px;
+}
+
+.yahoo-team-card-heading time,
+.yahoo-roster-slot {
+  color: #615774;
+  font-size: 0.73rem;
+  white-space: nowrap;
+}
+
+.yahoo-roster-slot {
+  text-align: right;
+}
+
+.yahoo-roster-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 4px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+.yahoo-roster-dot-injury {
+  background: #c72845;
+}
+
+.yahoo-roster-dot-add {
+  background: #176bd0;
 }
 
 .yahoo-teams footer {
