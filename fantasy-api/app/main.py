@@ -6,6 +6,7 @@ from app.api.routes.free_agents import router as free_agents_router
 from app.api.routes.roster import router as roster_router
 from app.api.routes.team_comparisons import router as team_comparisons_router
 from app.api.routes.sync import router as sync_router
+from app.api.routes.yahoo_teams import router as yahoo_teams_router
 
 app = FastAPI(
     title="Fantasy Analytics API",
@@ -26,6 +27,7 @@ app.include_router(roster_router)
 app.include_router(free_agents_router)
 app.include_router(team_comparisons_router)
 app.include_router(sync_router)
+app.include_router(yahoo_teams_router)
 
 
 @app.get("/", tags=["status"])

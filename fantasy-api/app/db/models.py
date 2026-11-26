@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
+from uuid import UUID
 
 from sqlalchemy import (
     Boolean,
@@ -10,9 +11,12 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    Text,
+    Uuid,
     UniqueConstraint,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -126,3 +130,21 @@ class FantasyRosterEntry(Base):
     player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), primary_key=True)
     roster_group: Mapped[str] = mapped_column(String(30), nullable=False, default="core")
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+
+
+class YahooTeamRosterSnapshot(Base):
+    __tablename__ = "yahoo_team_roster_snapshots"
+    __table_args__ = (
+        Index("ix_yahoo_roster_league_capture", "league_key", "captured_at"),
+        Index("ix_yahoo_roster_captured_at", "captured_at"),
+    )
+
+    snapshot_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    team_key: Mapped[str] = mapped_column(Text, primary_key=True)
+    league_key: Mapped[str] = mapped_column(Text, nullable=False)
+    league_name: Mapped[str] = mapped_column(Text, nullable=False)
+    team_name: Mapped[str] = mapped_column(Text, nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    players: Mapped[list[dict[str, str]]] = mapped_column(JSONB, nullable=False)

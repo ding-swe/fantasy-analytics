@@ -103,6 +103,13 @@ export default function Navbar(props: Props) {
         >
           Team Comparisons
         </NavLink>
+        <NavLink
+          to="/yahoo-teams"
+          className="workspace-tab"
+          activeClassName="active"
+        >
+          Yahoo Teams
+        </NavLink>
         <SyncButton />
       </nav>
     </div>

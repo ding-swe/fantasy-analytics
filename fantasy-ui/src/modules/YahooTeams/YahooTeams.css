@@ -1,0 +1,91 @@
+.yahoo-teams {
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 22px clamp(12px, 2.5vw, 36px);
+  color: var(--text-dark);
+}
+
+.yahoo-teams-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.yahoo-teams-heading h1 {
+  margin: 0;
+  color: var(--bg-header);
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+}
+
+.yahoo-teams-heading p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+}
+
+.yahoo-teams-heading button {
+  border: 1px solid #ded8f4;
+  border-radius: var(--border-radius);
+  background: white;
+  color: #5420bf;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.yahoo-teams-heading button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.yahoo-team-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.yahoo-team-card {
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid #ded8f4;
+  border-radius: var(--border-radius);
+  background: white;
+}
+
+.yahoo-team-card h2 {
+  margin: 0 0 5px;
+  font-size: 0.94rem;
+  color: #452078;
+  overflow-wrap: anywhere;
+}
+
+.yahoo-team-card li {
+  padding: 2px 0;
+  border-top: 1px solid #f0edf6;
+  font-size: 0.78rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.yahoo-teams footer {
+  margin-top: 14px;
+  font-size: 0.8rem;
+}
+
+.yahoo-teams footer a {
+  text-decoration: underline;
+}
+
+@media (max-width: 1050px) {
+  .yahoo-team-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .yahoo-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 350px) {
+  .yahoo-team-grid { grid-template-columns: minmax(0, 1fr); }
+}

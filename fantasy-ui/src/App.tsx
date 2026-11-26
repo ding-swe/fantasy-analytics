@@ -4,6 +4,7 @@ import About from './modules/About/About';
 import FreeAgents from './modules/FreeAgents';
 import PlayerStats from './modules/PlayerStats/PlayerStats';
 import TeamComparisons from './modules/TeamComparisons/TeamComparisons';
+import YahooTeams from './modules/YahooTeams/YahooTeams';
 import Navbar, {
   NavItem,
   DropdownMenu,
@@ -26,6 +27,7 @@ function App() {
           <Route path="/" component={PlayerStats} exact />
           <Route path="/free-agents" component={FreeAgents} exact />
           <Route path="/team-comparisons" component={TeamComparisons} exact />
+          <Route path="/yahoo-teams" component={YahooTeams} exact />
           <Route path="/about" component={About} exact />
         </Switch>
       </div>
